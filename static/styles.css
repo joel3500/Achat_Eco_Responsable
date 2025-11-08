@@ -1,0 +1,47 @@
+:root { --bg:#0f172a; --fg:#e2e8f0; --muted:#94a3b8; --card:#111827; --brand:#22c55e; }
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,Segoe UI,Roboto}
+a{color:#60a5fa}
+header.barre{padding:20px;border-bottom:1px solid #1f2937;background:#0b1220}
+header h1{margin:0;}
+.container{max-width:940px;margin:20px auto;padding:0 16px}
+h2{margin:18px 0}
+.small{text-align:justify; justify-content:space-between;}
+.input-row{display:flex;flex-direction:column;margin:10px 0;padding:10px;background:#0b1220;border:1px solid #1f2937;border-radius:12px}
+.input-row input{padding:10px;border-radius:8px;border:1px solid #374151;background:#0a0f1a;color:var(--fg)}
+.buttons{display:flex;gap:10px;margin:12px 0}
+.btn{padding:10px 14px;border:1px solid #334155;background:#0b1220;border-radius:10px;color:var(--fg);cursor:pointer}
+.btn.primary{background:var(--brand);border-color:#16a34a;color:#052e12;font-weight:700}
+.btn.ghost{opacity:.8}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.hint{color:var(--muted); text-align:justify; justify-content:space-between;}
+.msg{margin-top:6px}
+.msg.error{color:#fda4af}
+.hidden{display:none}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:14px 0}
+.card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:14px}
+.card h4{margin:6px 0 0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+pre{white-space:pre-wrap;background:#0a0f1a;padding:10px;border-radius:10px;border:1px solid #1f2937}
+footer{padding:20px;border-top:1px solid #1f2937;text-align:center;color:var(--muted)}
+
+.msg.ok { color: #34d399; } /* vert doux */
+
+.site-shortlist {
+  margin: 12px 0;
+  background: #0b1020;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  padding: 14px;
+}
+.site-shortlist h3 { margin: 4px 0 10px; }
+.site-shortlist h4 { margin: 12px 0 6px; font-size: 1rem; color: var(--fg); }
+.site-ul { margin: 0 0 6px 18px; padding: 0; }
+.site-ul li { margin: 4px 0; }
+.site-ul a { word-break: break-all; }
+
+
+.table-wrap { overflow-x: auto; }
+.nice-table { width:100%; border-collapse: collapse; }
+.nice-table th, .nice-table td { border:1px solid #1f2937; padding:8px; vertical-align: top; }
+.nice-table th { background:#0b1220; text-align:left; }
+.nice-table tr:nth-child(even){ background:#0a0f1a; }

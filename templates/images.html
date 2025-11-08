@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>{% block title %} Recherche par images — Achat Responsable {% endblock %} </title>
+  <meta name="description" content="{% block desc %}Compare des articles (matériaux, eau, recyclabilité…) et classe le plus éco-responsable. Recherche aussi des vendeurs à partir d’une image.{% endblock %}">
+  <link rel="canonical" href="{{ request.url }}">
+  <link rel="stylesheet" href="/static/styles.css"/>
+
+  <style>
+    /* petit style pour la liste des résultats */
+    .match-list{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+    .match{display:flex;gap:12px;align-items:flex-start;border:1px solid #1f2937;
+           border-radius:10px;padding:10px;background:#0a0f1a}
+    .match img{max-width:140px;border-radius:8px}
+    .match .meta a{word-break:break-all}
+    .match .site{font-size:.9rem;opacity:.8}
+    .match .price{font-weight:600;color:#34d399}
+  </style>
+  
+</head>
+<body>
+  <header class="barre">
+      <h1>🔎 Recherche par images</h1>
+      <p class="small">
+          <small>
+            Uploadez une image → puis nous retrouvons les points de vente en ligne : <br>
+            Uploade l'image d'un objet que tu désires acheter ( accessoire - vêtement - véhicule - ... ) 
+            et nous t'aidons èa le retrouver en ligne. Avec si possible le prix qui est affiché.
+            <br><a href="/">← Retour à la page de l'Achat Eco-Responsable</a>
+          </small>
+      </p>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <form method="post" enctype="multipart/form-data">
+        <label for="file"><b>Choisir une image</b></label><br>
+        <input id="file" name="file" type="file" accept="image/*" required>
+        <p class="hint">Formats usuels (jpg, png, jpeg, gif, webp). Taille <5Mo svp</p>
+
+        <!-- Aperçu immédiat de l’image choisie -->
+        <div id="previewWrap" style="margin:10px 0; display:none;">
+          <img id="preview" alt="Aperçu"
+               style="height:300px;width:auto;max-width:100%;
+                      border-radius:10px;border:1px solid #1f2937;object-fit:contain"/>
+        </div>
+
+        <button class="btn primary" type="submit">Lancer la recherche</button>
+      </form>
+    </section>
+
+    {% if error %}
+      <div class="msg error">{{ error }}</div>
+    {% endif %}
+
+    {% if result %}
+      <section class="card">
+        <h3>Image sélectionnée</h3>
+        {% if result.query_preview_b64 %}
+          <img src="{{ result.query_preview_b64 }}" alt="Image requête"
+               style="height:300px;width:auto;max-width:100%;
+                      border-radius:10px;border:1px solid #1f2937;object-fit:contain"/>
+        {% endif %}
+      </section>
+
+      <section class="card">
+        <h3>Correspondances trouvées</h3>
+        {% if result['items']|length > 0 %}
+          <ul class="match-list">
+            {% for it in result['items'] %}
+              <li class="match">
+                {% if it.thumb %}
+                  <a href="{{ it.url }}" target="_blank" rel="noopener">
+                    <img src="{{ it.thumb }}" alt="aperçu" loading="lazy" />
+                  </a>
+                {% endif %}
+                <div class="meta">
+                  <a href="{{ it.url }}" target="_blank" rel="noopener">{{ it.url }}</a>
+                  <div class="site">{{ it.site }}</div>
+                  {% if it.price %}<div class="price">{{ it.price }}</div>{% endif %}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="hint">Aucune page similaire n’a été détectée.</p>
+        {% endif %}
+      </section>
+    {% endif %}
+  </main>
+
+  <footer>
+    <small>
+      Ce site Respecte les CGU des sites visités. Sources: moteur visuel (Bing/Google). <br>
+      Tous droits réservés | Webmaster : Joel Sandé, du Saguenay Lac Saint-Jean. <br> 
+      C'est JoJo qui a fait le son. 
+    </small>
+  </footer>
+
+  <script>
+    // Aperçu immédiat du fichier choisi
+    const input = document.getElementById('file');
+    const wrap  = document.getElementById('previewWrap');
+    const img   = document.getElementById('preview');
+    input.addEventListener('change', () => {
+      const f = input.files && input.files[0];
+      if (!f) { wrap.style.display = 'none'; img.removeAttribute('src'); return; }
+      const reader = new FileReader();
+      reader.onload = e => { img.src = e.target.result; wrap.style.display = 'block'; };
+      reader.readAsDataURL(f);
+    });
+  </script>
+</body>
+</html>

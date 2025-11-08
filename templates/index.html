@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="fr">
+<head>
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% block title %}Achat Éco-Responsable — compare l’impact environnemental{% endblock %}</title>
+  <meta name="description" content="{% block desc %}Compare des articles (matériaux, eau, recyclabilité…) et classe le plus éco-responsable. Recherche aussi des vendeurs à partir d’une image.{% endblock %}">
+  <link rel="canonical" href="{{ request.url }}">
+  
+  <!-- Open Graph / Twitter -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Achat éco-responsable">
+  <meta property="og:description" content="Classement écologique & recherche par image (avec prix).">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta property="og:image" content="{{ url_for('static', filename='og-card.png', _external=True) }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="/static/styles.css" />
+  
+</head>
+
+<body>
+  <header class="barre">
+    <h1>🛒 Achat Eco-Responsable</h1>
+    <p class="small">
+        <small>
+          Compare des articles et choisis le plus éco : <br>
+          Tu désires te procurrer un produit. 
+          Mais tu as plusieurs choix possibles et tu hésites lequel choisir. 
+          Nous t'aidons èa faire un choix Eco-Responsable. 
+          Tu n'as juste qu'èa coller les URLs des pages de tes objets, 
+          et nous t'aidons èa faire les choix Eco-Responsables (
+            Emprunte Carbone 
+            - Fabrication ayant consommé le moins d'eau 
+            - Celui qui contient le plus de matériel recyclable 
+            - ... ) 
+            le choix le plus respectueux de l'environnement. 
+           <br><a href="/images">← j'ai une image dont je cherche les points de vente en ligne</a>
+        </small>
+    </p>
+  </header>
+
+  <main class="container">
+    <!-- Zone d'URL dynamiques -->
+    <section>
+            <h2>Articles à comparer</h2>
+            <div id="inputs"></div>
+
+            <div class="buttons">
+              <button id="addBtn" class="btn">➕ Ajouter un article</button>
+              <button id="removeBtn" class="btn ghost">➖ Supprimer le dernier</button>
+              <button id="runBtn" class="btn primary"> Lancer l’analyse</button>
+            </div>
+            <p class="hint">Ajoute au minimum 2 URLs de pages des articles.</p>
+            <div id="msg" class="msg"></div>
+  
+    </section>
+
+    <!-- ——— Short-list de sites (exemples d’URL produit) ——— -->
+            <section class="site-shortlist">
+              <h3>Exemples de sites pour tester</h3>
+
+              <h4>Marketplaces prioritaires</h4>
+              <ul class="site-ul">
+                <li><b>Amazon</b> — 
+                  <a target="_blank" rel="noopener" href="https://www.amazon.ca/HyperX-Cloud-Alpha-Wireless-Headphone/dp/B09TRW57WB?th=1">Écouteurs sur Amazon</a>
+                </li>
+                <li><b>AliExpress</b> — 
+                  <a target="_blank" rel="noopener" href="https://www.aliexpress.com/item/1005010013644974.html?spm=a2g0o.productlist.main.2.3b68CoevCoevj9&aem_p4p_detail=20251107170621635875746455130001499353&algo_pvid=8d10440d-4936-4f55-ab36-c704c8ad74c2&algo_exp_id=8d10440d-4936-4f55-ab36-c704c8ad74c2-1&pdp_ext_f=%7B%22order%22%3A%22230%22%2C%22eval%22%3A%221%22%2C%22fromPage%22%3A%22search%22%7D&pdp_npi=6%40dis%21CAD%21125.07%2151.69%21%21%21616.43%21254.79%21%40210328db17625639817935419eb863%2112000050844510458%21sea%21CA%210%21ABX%211%210%21n_tag%3A-29910%3Bd%3Aa7c3cc63%3Bm03_new_user%3A-29895%3BpisId%3A5000000187429864&curPageLogUid=w2glZASoKnHM&utparam-url=scene%3Asearch%7Cquery_from%3A%7Cx_object_id%3A1005010013644974%7C_p_origin_prod%3A&search_p4p_id=20251107170621635875746455130001499353_1">Écouteurs sur AliExpress</a>
+                </li>
+                <li><b>Alibaba</b> — 
+                  <a target="_blank" rel="noopener" href="https://www.alibaba.com/product-detail/Modern-X1-PRO-AI-Smart-Sports_1601600396621.html?selectedCarrierCode=SEMI_MANAGED_STANDARD%40%40STANDARD&priceId=811beff19fbb47feb6cc664408b7aa6f">Écouteurs sur Alibaba</a>
+                </li>
+                <li><b>Wish</b> — 
+                  <a target="_blank" rel="noopener" href="https://www.wish.com/search/ecouteurs/product/685ed09ee289e1554cb3f17f?source=search&position=13">Écouteurs sur Wish</a>
+                </li>
+              </ul>
+
+              <h4>Marketplaces généralistes</h4>
+              <ul class="site-ul">
+                <li><b>eBay</b> — 
+                  <a target="_blank" rel="noopener" href="https://www.ebay.ca/p/14059427736?iid=314505929469">Écouteurs sur Ebay</a>
+                </li>
+                <li><b>Etsy</b> — 
+                  <a target="_blank" rel="noopener" href="https://www.etsy.com/ca-fr/listing/4341130945/ecouteurs-sans-fil-ncc?ls=s&ga_order=most_relevant&ga_search_type=all&ga_view_type=gallery&ga_search_query=%C3%A9couteurs&ref=sr_gallery-1-2&sr_prefetch=1&pf_from=search&nob=1&content_source=5caadf3a-0899-4ec4-87b3-268350d33634%253ALTf9f98745c59191094bba57734090a010d4ad6414&organic_search_click=1&logging_key=5caadf3a-0899-4ec4-87b3-268350d33634%3ALTf9f98745c59191094bba57734090a010d4ad6414">Écouteurs sur Etsy</a>
+                </li>
+              </ul>
+
+              <h4>Grands détaillants (Canada)</h4>
+              <ul class="site-ul">
+                <li><b>Best Buy</b> — 
+                  Désolé. Ce site ne fonctionne pas avec Best-Buy. Je vais les inviter èa revoir la navigation sur leur site Web. C'est frustrant de ne pas pouvoir s'informer en toute transparance.
+                </li>
+                <li><b>Canadian Tire</b> — 
+                  <a target="_blank" rel="noopener" href="https://www.canadiantire.ca/fr/pdp/noma-brunswick-sapin-de-noel-illumine-avec-support-250-ampoules-a-del-blanc-chaud-7-pi-1518405p.html">Un Sapin de Noel chez Canadian Tire</a>
+                </li>
+                <li><b>Newegg Canada</b> — 
+                  <a target="_blank" rel="noopener" href="https://www.newegg.ca/lenovo-ideapad-slim-3-15-3-wuxga-touch-screen-amd-ryzen-5-8540u-amd-radeon-740m-16gb-memory-512-gb-pcie-ssd-cosmic-blue/p/N82E16834840618?Item=N82E16834840618">Laptop chez Newegg</a>
+                </li>
+              </ul>
+
+              <h4>Mode & plein air</h4>
+              <ul class="site-ul">
+                <li><b>Simons</b> — 
+                  <a target="_blank" rel="noopener" href="https://www.roomie-design.com/en-ca/products/bohemian-orient-duvet-cover-set-egyptian-cotton-500-tc?currency=CAD&country=CA&variant=47088968532298&utm_source=google&utm_medium=cpc&utm_campaign=Google%20Shopping&stkn=6d243f9525b2&utm_source=pmaxcad&gad_source=1&gad_campaignid=23055136723&gbraid=0AAAAACZt_em9_1GMfTUDF71J_2C5l0P0I&gclid=EAIaIQobChMI0sfGscnhkAMVny7UAR3rYADLEAQYCyABEgJQe_D_BwE">Un Set de Lit chez Simons</a>
+                </li>
+                <li><b>MEC</b> — 
+                  <a target="_blank" rel="noopener" href="https://www.mec.ca/en/product/6033-756/garmin-fenix-8-51mm-sapphire-amoled-watch?colour=Carbon+Gray+DLC+Titanium%2F&utm_content=garmin&gad_source=1&gad_campaignid=22130682622&gbraid=0AAAAAD-dszgvG6XF-eTXOHAmCfYpAJXF3&gclid=EAIaIQobChMI1M7H5cnhkAMVeyPUAR098Sa0EAQYASABEgL2Z_D_BwE">Une Montre Garmin Fenix chez MEC</a>
+                </li>
+              </ul>
+
+              <h4>Maison & rénovation</h4>
+              <ul class="site-ul">
+                <li><b>IKEA</b> — 
+                  <a target="_blank" rel="noopener" href="https://www.wayfair.ca/fr/mobilier/pdp/wrought-studio-lit-kadeen-c110666260.html?piid=1652450732%2C1652450735">Lit Kadeen chez IKEA</a>
+                </li>
+                <li><b>Home Depot</b> — 
+                  <a target="_blank" rel="noopener" href="https://www.homedepot.ca/produit/corliving-cadre-de-lit-rembourre-beige-moderne-celeste-queen/1001856522">Lit Queen chez Home Depot</a>
+                </li>
+                <li><b>RONA</b> — 
+                  <a target="_blank" rel="noopener" href="https://www.rona.ca/fr/produit/grand-lit-2-places-et-tete-de-lit-rembourree-homy-casa-a-del-a-port-de-recharge-integre-dessin-geometrique-beige-2408190000003-332068236">Grand Lit 2 places chex RONA</a>
+                </li>
+              </ul>
+
+              <h4>Reconditionné / seconde main</h4>
+              <ul class="site-ul">
+                <li><b>Back Market</b> — 
+                  <a target="_blank" rel="noopener" href="https://reebelo.ca/collections/apple-iphone-15-pro?storage=512GB&color=Black+Titanium&batteryHealth=80&condition=Acceptable&utm_source=google&utm_medium=cpc&utm_campaign=22238573731&utm_content=175230990175&utm_term=&gclid=EAIaIQobChMI9aLgscThkAMVeU1_AB1QYRJAEAQYBSABEgIxv_D_BwE&gad_source=1&gad_campaignid=22238573731&gbraid=0AAAAACSdL286g88ZYFFTBDL6Q6NN36Xh_">IPhone 15 Pro</a>
+                </li>
+                <li><b>Poshmark</b> — 
+                  <a target="_blank" rel="noopener" href="https://poshmark.ca/listing/Apple-iPhone-14-Pro-White-Sleek-Design-Triple-Camera-68352a479b215817c1a0a702?utm_source=gdm_ca&utm_campaign=22674711118&campaign_id=22674711118&ad_partner=google&gskid=pla-1466539720305&gcid=757990535194&ggid=182453001962&gdid=c&g_network=g&enable_guest_buy_flow=true&gad_source=1&gad_campaignid=22674711118&gbraid=0AAAAAoa4f3kC90lSuv-w74UDHz-usbMfc&gclid=EAIaIQobChMIt_WB4cThkAMVSizUAR0BPh1UEAQYAiABEgJmOPD_BwE">Apple IPhone 14 Pro</a>
+                </li>
+              </ul>
+
+              <h4>Sélection “éco”</h4>
+              <ul class="site-ul">
+                <li><b>EarthHero</b> — 
+                  <a target="_blank" rel="noopener" href="https://www.uline.ca/Product/Detail/S-25783/Dish-Soap-and-Detergent/Uline-Dish-Soap-38-L-Bottle?pricode=YE393&gadtype=pla&id=S-25783&gad_source=1&gad_campaignid=16556817334&gbraid=0AAAAAD2OYMZfdNqMUmJNV8IpekJ87DVtI&gclid=EAIaIQobChMI97O4t8XhkAMVUyrUAR232DC_EAYYBCABEgLAP_D_BwE">Bidon de Savon Liquide</a>
+                </li>
+              </ul>
+
+              <p class="hint">
+                Ces liens sont des <b>exemples de formats</b> (tous pointant vers de vrais produits).  
+                click pour voir le type de pages que nous pouvons vous analyser... <br> 
+                Soyons nombreux èa utiliser ce site, pour contraindre les fabriquants èa se soucier de notre environnement.
+              </p>
+            </section>
+
+      <!-- Résultats: classement -->
+      <section id="results" class="hidden">
+        <h2>Classement écologique (décroissant)</h2>
+        <ol id="ranking"></ol>
+
+        <h3>Détails par article</h3>
+        <div id="cards" class="cards"></div>
+      </section>
+  </main>
+
+  <footer>
+    <small>
+      Tous droits réservés | Produit par JOEL SANDÉ, du Saguenay Lac Saint-Jean. <br> 
+      Soyons nombreux èa utiliser ce site, pour contraindre les fabriquants èa se soucier de notre environnement. <br>
+      Partagez Massivement ! Et préservons notre environnement.
+    </small>
+  </footer>
+
+  <script>
+    // --- Gestion dynamique des entrées d'URL ---
+    const inputsDiv = document.getElementById('inputs');
+    const addBtn = document.getElementById('addBtn');
+    const removeBtn = document.getElementById('removeBtn');
+    const runBtn = document.getElementById('runBtn');
+    const msg = document.getElementById('msg');
+    const resultsSec = document.getElementById('results');
+    const rankingOl = document.getElementById('ranking');
+    const cardsDiv = document.getElementById('cards');
+
+    function makeInput(i, value="") {
+      const wrap = document.createElement('div');
+      wrap.className = 'input-row';
+      wrap.innerHTML = `
+        <label>URL de l’article ${i+1}</label>
+        <input type="url" placeholder="https://exemple.com/produit" value="${value}">
+      `;
+      return wrap;
+    }
+
+    function ensureAtLeast(n) {
+      while (inputsDiv.children.length < n) {
+        inputsDiv.appendChild(makeInput(inputsDiv.children.length));
+      }
+    }
+
+    // 2 champs par défaut
+    ensureAtLeast(2);
+
+    addBtn.onclick = () => {
+      inputsDiv.appendChild(makeInput(inputsDiv.children.length));
+    };
+
+    removeBtn.onclick = () => {
+      const n = inputsDiv.children.length;
+      if (n > 2) inputsDiv.removeChild(inputsDiv.lastElementChild);
+    };
+
+    function getUrls() {
+      return [...inputsDiv.querySelectorAll('input')].map(i => i.value.trim()).filter(Boolean);
+    }
+
+    function setBusy(b) {
+      runBtn.disabled = b;
+      addBtn.disabled = b;
+      removeBtn.disabled = b;
+      msg.textContent = b ? "Analyse en cours… ⏳" : "";
+    }
+
+    //---------------------------------------------------------//
+    // Pré-remplissage depuis la page "images" via sessionStorage
+    (function prefillFromSession() {
+        try {
+          const raw = sessionStorage.getItem('prefillUrls');
+          if (!raw) return;
+          const urls = JSON.parse(raw);
+          sessionStorage.removeItem('prefillUrls');
+          if (!Array.isArray(urls) || urls.length === 0) return;
+
+          // crée assez de champs
+          ensureAtLeast(Math.max(2, urls.length));
+          // insère
+          const inputs = [...inputsDiv.querySelectorAll('input')];
+          urls.forEach((u, i) => { if (inputs[i]) inputs[i].value = u; });
+
+          // petit message sympa
+          msg.textContent = `${urls.length} lien(s) importé(s) depuis la recherche par images.`;
+          msg.classList.add('ok');
+          setTimeout(() => { msg.textContent = ""; msg.classList.remove('ok'); }, 2000);
+
+          // (Optionnel) Lancer l’analyse tout de suite :
+          // runBtn.click();
+        } catch(e) {
+          // rien
+        }
+    })();
+
+    //---------------------------------------------------------//
+
+    // --- Lancer l'analyse ---
+    runBtn.onclick = async () => {
+      const urls = getUrls();
+      if (urls.length < 2) {
+        msg.textContent = "Ajoute au moins 2 URL.";
+        return;
+      }
+      setBusy(true);
+      cardsDiv.innerHTML = "";
+      rankingOl.innerHTML = "";
+      resultsSec.classList.add('hidden');
+
+      try {
+        const res = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ urls })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Erreur inconnue");
+
+        // Affiche le classement
+        data.results.forEach(item => {
+          const li = document.createElement('li');
+          li.innerHTML = `<strong>${escapeHtml(item.title)}</strong> — score ${item.eco_score} <br><small>${escapeHtml(item.url)}</small>`;
+          rankingOl.appendChild(li);
+
+          // Carte détaillée
+          const f = item.features || {};
+          const s = item.subscores || {};
+          const card = document.createElement('article');
+          card.className = 'card';
+          card.innerHTML = `
+            <h4>${escapeHtml(item.title)}</h4>
+            <p><a href="${item.url}" target="_blank" rel="noopener">Ouvrir la page</a></p>
+            <p><b>Score global :</b> ${item.eco_score}  |  <b>Rang :</b> ${item.rank}</p>
+            <div class="grid">
+              <div><b>Matériaux</b><br>${escapeHtml(f.materials || "—")}</div>
+              <div><b>Eau (L)</b><br>${fmtNum(f.water_use_liters)}</div>
+              <div><b>Énergie (kWh)</b><br>${fmtNum(f.energy_use_kwh)}</div>
+              <div><b>CO₂e (kg)</b><br>${fmtNum(f.co2e_kg)}</div>
+              <div><b>Bio-dégradabilité</b><br>${escapeHtml(f.biodegradability || "unknown")}</div>
+              <div><b>Recyclabilité</b><br>${escapeHtml(f.recyclability || "unknown")}</div>
+              <div><b>Durabilité/Réparabilité</b><br>${escapeHtml(f.durability_repairability || "unknown")}</div>
+              <div><b>Certifications</b><br>${(f.certifications||[]).map(escapeHtml).join(", ") || "—"}</div>
+              <div><b>Packaging</b><br>${escapeHtml(f.packaging || "—")}</div>
+              <div><b>Transport</b><br>${escapeHtml(f.transport || "—")}</div>
+              <div><b>Notes</b><br>${escapeHtml(f.other_notes || "—")}</div>
+              <div><b>Confiance</b><br>${(f.confidence!=null)? f.confidence : "—"}</div>
+            </div>
+            <details>
+              <summary>Voir sous-scores</summary>
+              <pre>${escapeHtml(JSON.stringify(s, null, 2))}</pre>
+            </details>
+          `;
+          cardsDiv.appendChild(card);
+        });
+
+        // Erreurs éventuelles
+        if (data.errors && data.errors.length) {
+          const errBlock = document.createElement('div');
+          errBlock.className = 'msg error';
+          errBlock.innerHTML = "<b>URLs en erreur :</b><br>" + data.errors.map(e => `${e.url} → ${escapeHtml(e.error)}`).join("<br>");
+          cardsDiv.prepend(errBlock);
+        }
+
+        resultsSec.classList.remove('hidden');
+      } catch (e) {
+        msg.textContent = "Erreur : " + e.message;
+      } finally {
+        setBusy(false);
+      }
+    };
+
+    // utils UI
+    function escapeHtml(s) {
+      return (s||"").replace(/[&<>"']/g, m => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      })[m]);
+    }
+    function fmtNum(x){ return (x===null||x===undefined||x==="") ? "—" : x; }
+  </script>
+</body>
+</html>
