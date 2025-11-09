@@ -1,0 +1,18 @@
+achat-eco/
+├─ backend/
+│  ├─ app.py
+│  ├─ requirements.txt
+│  ├─ Procfile
+│  ├─ templates/
+│  │   ├─ index.html
+│  │   └─ images.html
+│  ├─ static/
+│  │   └─ styles.css
+│  └─ README_BACKEND.md
+├─ frontend/
+│  ├─ index.html          # landing + boutons vers le back
+│  ├─ assets/
+│  │   └─ og-card.png
+│  └─ README_FRONTEND.md
+├─ render.yaml            # déploiement “blueprint” Render (reco)
+└─ .gitignore

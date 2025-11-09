@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Achat éco-responsable — Comparateur & Recherche par image</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Compare l’impact environnemental des produits (matériaux, eau, recyclabilité) et retrouve des vendeurs à partir d’une image.">
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Achat éco-responsable">
+  <meta property="og:description" content="Comparateur écolo + recherche par image (avec prix).">
+  <meta property="og:image" content="assets/og-card.png">
+  <meta property="og:url" content="https://<ton-user>.github.io/<repo>/">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <style>
+    :root{
+      --bg:#0b1020; --panel:#0a0f1a; --muted:#9aa3b2; --fg:#e5e7eb; --acc:#34d399; --line:#1f2937;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    a{color:#93c5fd;text-decoration:none} a:hover{text-decoration:underline}
+    .wrap{max-width:980px;margin:0 auto;padding:28px 16px}
+    header{padding:38px 0 12px}
+    h1{font-size:32px;margin:0}
+    p.lead{color:var(--muted);max-width:60ch;margin:8px 0 0}
+    .hero{display:grid;grid-template-columns:1.2fr .8fr;gap:20px;align-items:center;margin:24px 0 10px}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+    .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:#111627}
+    .btn.primary{background:var(--acc);color:#08131a;border:1px solid #10b981}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .grid{display:grid;gap:14px;grid-template-columns:repeat(3,1fr)}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+    .muted{color:var(--muted)}
+    footer{margin:24px 0 40px;color:var(--muted);font-size:14px}
+    img.hero{width:100%;height:auto;border-radius:12px;border:1px solid var(--line)}
+    code{background:#0b1220;border:1px solid var(--line);padding:1px 6px;border-radius:6px}
+    @media (max-width:860px){
+      .hero{grid-template-columns:1fr}
+      .grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>🌱 Achat éco-responsable</h1>
+      <p class="lead">
+            1) Compare les impacts environnementaux des produits avant de les acheter 
+            (matériaux, eau, recyclabilité) classement éco-responsable, simple et pratique. <br><br>
+
+            2) Retrouve des vendeurs à partir d’une image de produit que tu désires acheter. <br><br>
+      </p>
+      
+      <div class="btns">
+        <a class="btn primary" href="RENDER_URL" target="_blank" rel="noopener">Ouvrir l’app</a>
+      </div>
+      
+    </header>
+
+    <footer>
+      <p>
+        © Automne 2025 • Projet èa intérêt Écologique, incitant les lobis industriels èa faire de meilleurs choix pour la préservation de notre environnement èa tous. 
+        Idée du Professeur Marc Privé, enseignant au département d'Administration de l'UQAC. Implémentée par Joel Sandé, du Saguenay lac Saint-Jean.<br><br>
+
+        L'argent d'accord, mais notre environnement d'abord. Certe on ne peut pas faire d'omelettes sans casser d'oeufs, mais faisons-nous le moins de mal dans la mesure du possible.
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

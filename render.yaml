@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: achat-eco-backend
+    env: python
+    rootDir: backend
+    plan: free           # ou starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers=2 --threads=4 --timeout=120
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/vision-sa.json
+    secretFiles:
+      - name: vision-sa.json
+        path: /etc/secrets/vision-sa.json
+        # le contenu de la clé sera collé via l’UI après la création (Render te le demandera)
+  - type: static
+    name: achat-eco-frontend
+    rootDir: frontend
+    buildCommand: ""
+    staticPublishPath: .
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=3600
