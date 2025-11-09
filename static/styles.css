@@ -23,7 +23,7 @@ h2{margin:18px 0}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
 pre{white-space:pre-wrap;background:#0a0f1a;padding:10px;border-radius:10px;border:1px solid #1f2937}
 footer{padding:20px;border-top:1px solid #1f2937;text-align:center;color:var(--muted)}
-
+footer small p {text-align: justify; justify-content:space-between;}
 .msg.ok { color: #34d399; } /* vert doux */
 
 .site-shortlist {
