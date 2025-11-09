@@ -34,7 +34,8 @@
     .grid{display:grid;gap:14px;grid-template-columns:repeat(3,1fr)}
     .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
     .muted{color:var(--muted)}
-    footer{margin:24px 0 40px;color:var(--muted);font-size:14px}
+    footer{margin:24px 0 40px;color:var(--muted);font-size:14px;}
+    footer p {text-align: justify; justify-content:space-between;}
     img.hero{width:100%;height:auto;border-radius:12px;border:1px solid var(--line)}
     code{background:#0b1220;border:1px solid var(--line);padding:1px 6px;border-radius:6px}
     @media (max-width:860px){
@@ -46,7 +47,12 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>🌱 Achat éco-responsable</h1>
+      <h1><img src="eco_responsable_1.png" id="preview" alt="Aperçu"
+               style="height:60px;width:auto;max-width:100%;
+                      border-radius:10px;border:1px solid #1f2937;object-fit:contain"/>
+                      Achat Éco-Responsable
+      </h1>
+
       <p class="lead">
             1) Compare les impacts environnementaux des produits avant de les acheter 
             (matériaux, eau, recyclabilité) classement éco-responsable, simple et pratique. <br><br>
@@ -55,7 +61,7 @@
       </p>
       
       <div class="btns">
-        <a class="btn primary" href="RENDER_URL" target="_blank" rel="noopener">Ouvrir l’app</a>
+        <a class="btn primary" href="https://achat-eco-responsable.onrender.com" target="_blank" rel="noopener">Ouvrir l’app</a>
       </div>
       
     </header>
