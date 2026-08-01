@@ -2,15 +2,12 @@ flask
 requests
 beautifulsoup4
 openai>=1.40.0
-playwright          # si tu en as besoin en prod ; sinon retire
+playwright==1.58.0
 extruct
 w3lib
 lxml
 python-dotenv
-google-cloud-vision
-requests
 html-text
 gunicorn
 flask-compress
-
-
+google-cloud-vision

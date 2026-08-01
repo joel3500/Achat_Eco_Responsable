@@ -1,0 +1,9 @@
+.venv
+__pycache__
+*.pyc
+.env
+*.json
+.git
+installer_venv.txt
+gcreds_b64.txt
+docs

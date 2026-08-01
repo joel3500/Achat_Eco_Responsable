@@ -1,4 +1,4 @@
-import os, re, json, math, time
+import os, re, json, math, time, base64, tempfile
 from dataclasses import dataclass
 from typing import List, Dict, Any
 from dotenv import load_dotenv
@@ -13,10 +13,6 @@ from urllib.parse import urlparse   # librairie pour utiliser le smart_fetch # R
 from playwright.sync_api import sync_playwright
 import extruct, w3lib.html
 
-# ---------------------------------------------------------------#
-# Recherche visuelle (Bing Visual Search)
-# ---------------------------------------------------------------#
-import mimetypes
 #----------------------------------------------------------------#
 
 #----------------------------------------------------------------#
@@ -39,6 +35,16 @@ load_dotenv()
 #-------------------------------#
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")  # change si tu veux
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# En prod (Railway), les credentials Google arrivent en base64 (pas de fichier disponible sur le filesystem).
+# En local, GOOGLE_APPLICATION_CREDENTIALS peut déjà pointer vers un fichier .json existant.
+_gcreds_b64 = os.getenv("GOOGLE_CREDS_B64")
+if _gcreds_b64:
+    _creds_path = os.path.join(tempfile.gettempdir(), "gcp-credentials.json")
+    with open(_creds_path, "wb") as f:
+        f.write(base64.b64decode(_gcreds_b64))
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = _creds_path
+
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # ---- Paramètre pour activer/désactiver le rendu headless ---------------#
@@ -67,8 +73,8 @@ HEADLESS_DOMAINS = {
     "earthhero.com",
 }
 
-BING_VISION_KEY = os.getenv("BING_VISION_KEY")
-BING_VISION_ENDPOINT = os.getenv("BING_VISION_ENDPOINT", "https://api.bing.microsoft.com/v7.0/images/visualsearch")
+GOOGLE_CSE_KEY = os.getenv("GOOGLE_CSE_KEY")
+GOOGLE_CSE_ID  = os.getenv("GOOGLE_CSE_ID")
 
 # -----------------------------------------------------------------------------#
 
@@ -101,6 +107,167 @@ from flask_compress import Compress
 Compress(app)  # <-- ici, juste après la création de app
 
 #--------------- (Fin de stratégies de référencement) -------------------------#
+
+# ============================================
+#  MODULE : ULTIMATE IMAGE SEARCH (Lens‑like)
+# ============================================
+
+def _detect_mime(image_bytes: bytes) -> str:
+    if image_bytes[:3] == b'\xff\xd8\xff':
+        return "image/jpeg"
+    if image_bytes[:8] == b'\x89PNG\r\n\x1a\n':
+        return "image/png"
+    if image_bytes[:6] in (b'GIF87a', b'GIF89a'):
+        return "image/gif"
+    if image_bytes[:4] == b'RIFF' and image_bytes[8:12] == b'WEBP':
+        return "image/webp"
+    return "image/jpeg"
+
+def gcv_extract_info(image_bytes):
+    try:
+        from google.cloud import vision
+        client = vision.ImageAnnotatorClient()
+        resp = client.web_detection(image=vision.Image(content=image_bytes))
+        web = resp.web_detection
+    except Exception:
+        return {"entities": [], "pages": []}
+
+    out = {
+        "entities": [],
+        "pages": [],
+        "full_images": [],
+        "partial_images": [],
+    }
+
+    if not web:
+        return out
+
+    if web.web_entities:
+        out["entities"] = [e.description for e in web.web_entities if e.description]
+
+    if web.pages_with_matching_images:
+        out["pages"] = [p.url for p in web.pages_with_matching_images if p.url]
+
+    if web.full_matching_images:
+        out["full_images"] = [i.url for i in web.full_matching_images if i.url]
+
+    if web.partial_matching_images:
+        out["partial_images"] = [i.url for i in web.partial_matching_images if i.url]
+
+    return out
+
+
+def describe_image_with_llm(image_bytes):
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    try:
+        mime = _detect_mime(image_bytes)
+        b64 = base64.b64encode(image_bytes).decode("utf-8")
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Décris précisément le produit visible sur l’image."},
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{mime};base64,{b64}"}
+                        },
+                        {"type": "text", "text": "En une phrase courte : marque, type, couleur, modèle si possible."}
+                    ]
+                }
+            ]
+        )
+        return resp.choices[0].message.content.strip()
+    except Exception:
+        return ""
+
+
+def google_text_search(query):
+    if not GOOGLE_CSE_KEY or not GOOGLE_CSE_ID:
+        return []
+
+    params = {
+        "q": query,
+        "key": GOOGLE_CSE_KEY,
+        "cx": GOOGLE_CSE_ID,
+        "searchType": "image",
+        "num": 10,
+    }
+    try:
+        r = requests.get("https://www.googleapis.com/customsearch/v1", params=params, timeout=20)
+        r.raise_for_status()
+    except Exception:
+        return []
+
+    out = []
+    for item in r.json().get("items", []):
+        page = item.get("image", {}).get("contextLink") or item.get("link")
+        if not page:
+            continue
+        try:
+            site = urlparse(page).netloc
+        except Exception:
+            site = None
+        out.append({
+            "thumb": item.get("link"),
+            "url": page,
+            "site": site,
+            "price": None,
+        })
+    return out
+
+
+def merge_results(*lists):
+    merged, seen = [], set()
+    for lst in lists:
+        if not lst:
+            continue
+        for item in lst:
+            u = item.get("url")
+            if not u or u in seen:
+                continue
+            seen.add(u)
+            merged.append(item)
+    return merged
+
+
+def enrich_prices(items, max_n=10):
+    for it in items[:max_n]:
+        price = try_extract_price(it["url"])
+        if price:
+            it["price"] = price
+    return items
+
+
+def ultimate_search(image_bytes):
+    # 1) Google Vision → entités textuelles
+    gcv = gcv_extract_info(image_bytes)
+
+    # 2) LLM → description lisible pour la recherche texte
+    query = describe_image_with_llm(image_bytes)
+    if not query and gcv.get("entities"):
+        query = " ".join(gcv["entities"][:5])
+
+    # 3a) Google Cloud Vision Web Detection (image → pages visuellement similaires)
+    visual_items = gcv_web_detection(image_bytes)
+
+    # 3b) Google Custom Search (description → résultats complémentaires)
+    text_items = google_text_search(query) if query else []
+
+    # 4) Fusion (visual en priorité, texte en complément)
+    merged = merge_results(visual_items, text_items)
+
+    # 5) Enrichissement prix
+    merged = enrich_prices(merged)
+
+    return {
+        "description": query,
+        "entities": gcv["entities"],
+        "items": merged[:20]
+    }
+
+#================= ( FIN DE RESCHERCHE de Correspondance )  ===========================#
 
 def _extract_price_from_jsonld(data):
     """Explore JSON-LD/Microdata pour Offer/AggregateOffer."""
@@ -459,67 +626,6 @@ def _extract_domain(u: str) -> str:
     except Exception:
         return ""
 
-def bing_visual_search(image_bytes: bytes, filename: str = "upload.jpg") -> list[dict]:
-    """
-    Appelle l'API Bing Visual Search avec une image et renvoie
-    une liste d'items: [{thumb, url, site, price}] (price facultatif).
-    """
-    if not BING_VISION_KEY:
-        raise RuntimeError("BING_VISION_KEY manquant. Ajoute-le dans .env")
-
-    content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
-    files = {
-        'image': (filename, image_bytes, content_type)
-    }
-    headers = {
-        "Ocp-Apim-Subscription-Key": BING_VISION_KEY
-    }
-    resp = requests.post(BING_VISION_ENDPOINT, headers=headers, files=files, timeout=30)
-    resp.raise_for_status()
-    data = resp.json()
-
-    # Le JSON renvoie des 'tags' → 'actions'
-    results = []
-    for tag in data.get("tags", []):
-        for action in tag.get("actions", []):
-            # On prend ce qui pointe vers des pages produit/images similaires
-            if action.get("actionType") in ("VisualSearch", "PagesIncluding", "ProductVisualSearch", "ShoppingSources", "ImageResults"):
-                value = action.get("data", {}).get("value", [])
-                for v in value:
-                    url = v.get("hostPageUrl") or v.get("webSearchUrl") or v.get("contentUrl")
-                    if not url:
-                        continue
-                    thumb = v.get("thumbnailUrl") or v.get("thumbnail", {}).get("url") or v.get("image", {}).get("thumbnailUrl")
-                    name  = v.get("name") or v.get("hostPageDisplayUrl") or _extract_domain(url)
-
-                    # Prix si présent (rare mais possible)
-                    price = None
-                    offer = v.get("offer") or v.get("offers") or {}
-                    if isinstance(offer, dict):
-                        price = offer.get("price") or offer.get("priceDisplay")
-                    # fallback si le prix est imbriqué ailleurs (certains vendors)
-                    if not price:
-                        for k in ("aggregateRating", "insightsMetadata", "insightsSourcesSummary"):
-                            # rien à faire, on ne force pas
-
-                            pass
-
-                    results.append({
-                        "thumb": thumb,
-                        "url": url,
-                        "site": _extract_domain(url) or name,
-                        "price": price
-                    })
-    # Déduplique par URL
-    seen = set()
-    unique = []
-    for r in results:
-        if r["url"] in seen:
-            continue
-        seen.add(r["url"])
-        unique.append(r)
-    return unique
-
 # --- Google Cloud Vision: Web Detection (image -> pages similaires) ---
 def gcv_web_detection(image_bytes: bytes, filename: str = "upload.jpg") -> list[dict]:
     """
@@ -527,10 +633,10 @@ def gcv_web_detection(image_bytes: bytes, filename: str = "upload.jpg") -> list[
     qui contiennent cette image (ou une variante). Retourne une liste
     d'items: {thumb, url, site, price(None)}.
     """
-    from google.cloud import vision
     from urllib.parse import urlparse
 
     try:
+        from google.cloud import vision
         client = vision.ImageAnnotatorClient()
         resp = client.web_detection(image=vision.Image(content=image_bytes))
         web = resp.web_detection
@@ -578,7 +684,6 @@ def gcv_web_detection(image_bytes: bytes, filename: str = "upload.jpg") -> list[
 # ------------------------------
 @app.get("/")
 def index():
-    tests()
     return render_template("index.html")
 
 
@@ -626,34 +731,30 @@ def images_page():
 
 @app.post("/images")
 def images_search():
-    """
-    Traite 1 image uploadée, renvoie une page résultat avec :
-    - l'image source (aperçu)
-    - une liste d'URLs similaires avec miniatures
-    """
     f = request.files.get("file")
     if not f or not f.filename:
         return render_template("images.html", error="Aucun fichier reçu.")
 
     img_bytes = f.read()
 
-    # Essayez d'abord Bing s'il est configuré, sinon fallback Google (si tu l'as ajouté)
-    items = []
     try:
-        if BING_VISION_KEY:  # la var d'env
-            items = bing_visual_search(img_bytes, f.filename)
-        if not items:  # vide ? on bascule GCV
-            items = gcv_web_detection(img_bytes, f.filename)
-    except Exception:
-        items = gcv_web_detection(img_bytes, f.filename)
+        result_search = ultimate_search(img_bytes)
+    except Exception as e:
+        return render_template("images.html", error=f"Erreur lors de la recherche : {e}")
 
+    mime = _detect_mime(img_bytes)
     result = {
         "query_filename": f.filename,
-        "query_preview_b64": "data:" + (mimetypes.guess_type(f.filename)[0] or "image/jpeg") + ";base64," +
-                             __import__("base64").b64encode(img_bytes).decode("utf-8"),
-        "items": items[:20],
+        "query_preview_b64": (
+            f"data:{mime};base64,"
+            + base64.b64encode(img_bytes).decode("utf-8")
+        ),
+        "description": result_search.get("description", ""),
+        "items": result_search["items"]
     }
+
     return render_template("images.html", result=result)
+
 
 #---------------------------------------#
 # Google Cloud Vision seul              #
@@ -710,4 +811,6 @@ if __name__ == "__main__":
         print("   Ouvre un terminal et exporte ta clé :")
         print("   Windows PowerShell: $env:OPENAI_API_KEY='sk-...'\n"
               "   macOS/Linux: export OPENAI_API_KEY='sk-...'")
+        
     app.run(debug=True)
+    

@@ -4,8 +4,40 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>{% block title %} Recherche par images — Achat Responsable {% endblock %} </title>
-  <meta name="description" content="{% block desc %}Compare des articles (matériaux, eau, recyclabilité…) et classe le plus éco-responsable. Recherche aussi des vendeurs à partir d’une image.{% endblock %}">
+  <meta name="description" content="{% block desc %}Uploadez une image d’un produit et retrouvez instantanément les points de vente en ligne avec le prix affiché — accessoires, vêtements, électronique et plus.{% endblock %}">
   <link rel="canonical" href="{{ request.url }}">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="Joel Sandé">
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Recherche par images — Achat Éco-Responsable">
+  <meta property="og:description" content="Uploadez une image d’un produit et retrouvez instantanément les points de vente en ligne avec le prix affiché.">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta property="og:image" content="{{ url_for(‘static’, filename=’og-card.png’, _external=True) }}">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Données structurées Schema.org -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Recherche par images — Achat Éco-Responsable",
+    "url": "{{ request.url }}",
+    "description": "Uploadez une image d’un produit et retrouvez instantanément les points de vente en ligne avec le prix affiché.",
+    "inLanguage": "fr-CA",
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "Achat Éco-Responsable",
+      "url": "{{ request.url_root }}"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Joel Sandé"
+    }
+  }
+  </script>
+
   <link rel="stylesheet" href="/static/styles.css"/>
 
   <style>
@@ -28,7 +60,7 @@
           <small>
             Uploadez une image → puis nous retrouvons les points de vente en ligne : <br>
             Uploade l'image d'un objet que tu désires acheter ( accessoire - vêtement - véhicule - ... ) 
-            et nous t'aidons èa le retrouver en ligne. Avec si possible le prix qui est affiché.
+            et nous t'aidons à le retrouver en ligne. Avec si possible le prix qui est affiché.
             <br><a href="/">← Retour à la page de l'Achat Eco-Responsable</a>
           </small>
       </p>
@@ -66,6 +98,12 @@
         {% endif %}
       </section>
 
+      {% if result.description %}
+      <section class="card">
+        <p class="hint">🔍 Recherche lancée pour : <b>{{ result.description }}</b></p>
+      </section>
+      {% endif %}
+
       <section class="card">
         <h3>Correspondances trouvées</h3>
         {% if result['items']|length > 0 %}
@@ -86,7 +124,14 @@
             {% endfor %}
           </ul>
         {% else %}
-          <p class="hint">Aucune page similaire n’a été détectée.</p>
+          <p class="hint">
+            Aucune correspondance trouvée.
+            {% if not result.description %}
+              Le LLM n’a pas pu décrire l’image — vérifie que <code>OPENAI_API_KEY</code> est bien configuré dans le fichier <code>.env</code>.
+            {% else %}
+              Vérifie que <code>BING_VISION_KEY</code> est bien configuré dans le fichier <code>.env</code>.
+            {% endif %}
+          </p>
         {% endif %}
       </section>
     {% endif %}
@@ -95,15 +140,14 @@
   <footer>
     <small>
       <p>
-        © Tous droits réservés • Automne 2025 • Projet èa intérêt Écologique, incitant les lobis industriels èa faire de meilleurs choix pour la préservation de notre environnement èa tous. 
+        © Tous droits réservés • Automne 2025 • Projet à intérêt Écologique, incitant les lobis industriels à faire de meilleurs choix pour la préservation de notre environnement à tous. 
         Idée du Professeur Marc Privé, enseignant au département d'Administration de l'UQAC. 
         Produit par JOEL SANDÉ, du Saguenay Lac Saint-Jean. <br><br>
 
         L'argent d'accord, mais notre environnement d'abord. Certe on ne peut pas faire d'omelettes sans casser d'oeufs, mais faisons le moins de mal dans la mesure du possible. <br><br>
 
-        Soyons nombreux èa utiliser ce site, pour contraindre les fabriquants èa se soucier de notre environnement. <br>
-        Partagez Massivement ! Et préservons notre environnement. <br><br>
-        C'est JoJo qui a fait le son.
+        Soyons nombreux à utiliser ce site, pour contraindre les fabriquants à se soucier de notre environnement. <br>
+        Partagez Massivement ! pour préserver notre environnement. <br><br>
       </p>  
     </small>
   </footer>

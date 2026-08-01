@@ -4,3 +4,4 @@ __pycache__/
 .env
 *.json
 installer_venv.txt
+gcreds_b64.txt
