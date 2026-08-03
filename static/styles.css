@@ -56,3 +56,9 @@ footer small p {text-align: justify; justify-content:space-between;}
   font-size:.9rem;
   text-align:justify;
 }
+
+.donate-line{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.donate-btn{display:inline-block;padding:.6em 1.3em;border-radius:999px;font-weight:700;font-size:.95rem;text-decoration:none;transition:transform .15s,opacity .15s}
+.donate-btn:hover{transform:translateY(-1px);opacity:.92}
+.donate-btn-paypal{background:#003087;color:#fff}
+.donate-btn-interac{background:var(--card);color:var(--brand);border:2px solid var(--brand)}

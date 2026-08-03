@@ -734,6 +734,11 @@ def exemples_page():
     return render_template("exemples.html")
 
 
+@app.get("/don")
+def don_page():
+    return render_template("don.html")
+
+
 @app.post("/images")
 def images_search():
     f = request.files.get("file")
