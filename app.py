@@ -729,6 +729,11 @@ def images_page():
     return render_template("images.html")
 
 
+@app.get("/exemples")
+def exemples_page():
+    return render_template("exemples.html")
+
+
 @app.post("/images")
 def images_search():
     f = request.files.get("file")
@@ -794,6 +799,7 @@ def sitemap():
     pages = [
         url_for("index", _external=True),
         url_for("images_page", _external=True),
+        url_for("exemples_page", _external=True),
     ]
     today = datetime.utcnow().date().isoformat()
     xml = ['<?xml version="1.0" encoding="UTF-8"?>',
