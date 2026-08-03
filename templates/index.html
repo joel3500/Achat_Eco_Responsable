@@ -52,22 +52,21 @@
                        Achat Eco-Responsable</h1>
     <p class="small">
         <small>
-          Compare des articles et choisis le plus écologique : <br>
-          Tu désires te procurer un produit, mais tu as plusieurs choix possibles et tu hésites lequel choisir. 
-          Nous t'aidons à faire un choix Eco-Responsable. 
-          Tu n'as juste qu'à coller les URLs des pages de tes objets, et nous t'aidons à faire les 
-          choix Eco-Responsables : <br>
-          - Emprunte Carbone <br>
-          - Fabrication ayant consommé le moins d'eau <br> 
-          - Celui qui contient le plus de matériel recyclable <br> 
-          - ... <br> 
-          Nous te les classons selon l'ordre le plus respectueux de l'environnement. <br>
+          <span id="introIntro">Compare des articles et choisis le plus écologique :</span> <br>
+          <span id="introDesire">Tu désires te procurer un produit, mais tu as plusieurs choix possibles et tu hésites lequel choisir.</span>
+          <span id="introHelp">Nous t'aidons à faire un choix Eco-Responsable.</span>
+          <span id="introPaste">Tu n'as juste qu'à coller les URLs des pages de tes objets, et nous t'aidons à faire les choix Eco-Responsables :</span> <br>
+          - <span id="li1">Emprunte Carbone</span> <br>
+          - <span id="li2">Fabrication ayant consommé le moins d'eau</span> <br>
+          - <span id="li3">Celui qui contient le plus de matériel recyclable</span> <br>
+          - ... <br>
+          <span id="introRank">Nous te les classons selon l'ordre le plus respectueux de l'environnement.</span> <br>
 
-          <a href="/images">← j'ai une image dont je cherche les points de vente en ligne</a> <br>
-          <a href="/exemples">← je ne sais pas quel genre d'articles je peux comparer ici (voir des exemples)</a>
+          <a href="/images" id="linkImages">← j'ai une image dont je cherche les points de vente en ligne</a> <br>
+          <a href="/exemples" id="linkExemples">← je ne sais pas quel genre d'articles je peux comparer ici (voir des exemples)</a>
         </small>
     </p>
-    <p class="notice">
+    <p class="notice" id="notice">
       💻 Ce site fonctionne beaucoup mieux sur un ordinateur ou une tablette (plus facile pour copier-coller les URLs) que sur un téléphone. L'utilisation mobile n'est pas encore optimisée, désolé pour l'inconvénient.
     </p>
   </header>
@@ -75,24 +74,24 @@
   <main class="container">
     <!-- Zone d'URL dynamiques -->
     <section>
-            <h2>Articles à comparer</h2>
+            <h2 id="h2Compare">Articles à comparer</h2>
             <div id="inputs"></div>
 
             <div class="buttons">
               <button id="addBtn" class="btn">➕ Ajouter un article</button>
               <button id="removeBtn" class="btn ghost">➖ Supprimer le dernier</button>
-              <button id="runBtn" class="btn primary"> Lancer l’analyse</button>
+              <button id="runBtn" class="btn primary">Lancer l'analyse</button>
             </div>
-            <p class="hint">Ajoute au minimum 2 URLs de pages des articles.</p>
+            <p class="hint" id="hintMinUrls">Ajoute au minimum 2 URLs de pages des articles.</p>
             <div id="msg" class="msg"></div>
-  
+
     </section><br><br><br>
 
     <!-- ——— Short-list de sites (exemples d’URL produit) ——— -->
             <section class="site-shortlist">
-              <h3>Exemples de sites pour tester</h3>
+              <h3 id="h3Shortlist">Exemples de sites pour tester</h3>
 
-              <h4>Marketplaces prioritaires</h4>
+              <h4 id="catMarketPriority">Marketplaces prioritaires</h4>
               <ul class="site-ul">
                 <li><b>Amazon</b> — 
                   <a target="_blank" rel="noopener" href="https://www.amazon.ca/HyperX-Cloud-Alpha-Wireless-Headphone/dp/B09TRW57WB?th=1">Écouteurs sur Amazon</a>
@@ -108,7 +107,7 @@
                 </li>
               </ul>
 
-              <h4>Marketplaces généralistes</h4>
+              <h4 id="catMarketGeneral">Marketplaces généralistes</h4>
               <ul class="site-ul">
                 <li><b>eBay</b> — 
                   <a target="_blank" rel="noopener" href="https://www.ebay.ca/p/14059427736?iid=314505929469">Écouteurs sur Ebay</a>
@@ -118,7 +117,7 @@
                 </li>
               </ul>
 
-              <h4>Grands détaillants (Canada)</h4>
+              <h4 id="catRetailers">Grands détaillants (Canada)</h4>
               <ul class="site-ul">
                 <li><b>Best Buy</b> — 
                   Désolé. Ce site ne fonctionne pas avec Best-Buy. Je vais les inviter à revoir la navigation sur leur site Web. C'est frustrant de ne pas pouvoir s'informer en toute transparance.
@@ -131,7 +130,7 @@
                 </li>
               </ul>
 
-              <h4>Mode & plein air</h4>
+              <h4 id="catFashion">Mode & plein air</h4>
               <ul class="site-ul">
                 <li><b>Simons</b> — 
                   <a target="_blank" rel="noopener" href="https://www.roomie-design.com/en-ca/products/bohemian-orient-duvet-cover-set-egyptian-cotton-500-tc?currency=CAD&country=CA&variant=47088968532298&utm_source=google&utm_medium=cpc&utm_campaign=Google%20Shopping&stkn=6d243f9525b2&utm_source=pmaxcad&gad_source=1&gad_campaignid=23055136723&gbraid=0AAAAACZt_em9_1GMfTUDF71J_2C5l0P0I&gclid=EAIaIQobChMI0sfGscnhkAMVny7UAR3rYADLEAQYCyABEgJQe_D_BwE">Un Set de Lit chez Simons</a>
@@ -141,7 +140,7 @@
                 </li>
               </ul>
 
-              <h4>Maison & rénovation</h4>
+              <h4 id="catHome">Maison & rénovation</h4>
               <ul class="site-ul">
                 <li><b>IKEA</b> — 
                   <a target="_blank" rel="noopener" href="https://www.wayfair.ca/fr/mobilier/pdp/wrought-studio-lit-kadeen-c110666260.html?piid=1652450732%2C1652450735">Lit Kadeen chez IKEA</a>
@@ -154,7 +153,7 @@
                 </li>
               </ul>
 
-              <h4>Reconditionné / seconde main</h4>
+              <h4 id="catRefurb">Reconditionné / seconde main</h4>
               <ul class="site-ul">
                 <li><b>Back Market</b> — 
                   <a target="_blank" rel="noopener" href="https://reebelo.ca/collections/apple-iphone-15-pro?storage=512GB&color=Black+Titanium&batteryHealth=80&condition=Acceptable&utm_source=google&utm_medium=cpc&utm_campaign=22238573731&utm_content=175230990175&utm_term=&gclid=EAIaIQobChMI9aLgscThkAMVeU1_AB1QYRJAEAQYBSABEgIxv_D_BwE&gad_source=1&gad_campaignid=22238573731&gbraid=0AAAAACSdL286g88ZYFFTBDL6Q6NN36Xh_">IPhone 15 Pro</a>
@@ -164,47 +163,92 @@
                 </li>
               </ul>
 
-              <h4>Sélection “éco”</h4>
+              <h4 id="catEco">Sélection « éco »</h4>
               <ul class="site-ul">
-                <li><b>EarthHero</b> — 
+                <li><b>EarthHero</b> —
                   <a target="_blank" rel="noopener" href="https://www.uline.ca/Product/Detail/S-25783/Dish-Soap-and-Detergent/Uline-Dish-Soap-38-L-Bottle?pricode=YE393&gadtype=pla&id=S-25783&gad_source=1&gad_campaignid=16556817334&gbraid=0AAAAAD2OYMZfdNqMUmJNV8IpekJ87DVtI&gclid=EAIaIQobChMI97O4t8XhkAMVUyrUAR232DC_EAYYBCABEgLAP_D_BwE">Bidon de Savon Liquide</a>
                 </li>
               </ul>
 
-              <p class="hint">
-                Ces liens sont des <b>exemples de formats</b> (tous pointant vers de vrais produits).  
-                click pour voir le type de pages que nous pouvons vous analyser... <br> 
+              <p class="hint" id="shortlistHint">
+                Ces liens sont des <b>exemples de formats</b> (tous pointant vers de vrais produits).
+                click pour voir le type de pages que nous pouvons vous analyser... <br>
               </p>
             </section>
 
       <!-- Résultats: classement -->
       <section id="results" class="hidden">
-        <h2>Classement écologique (décroissant)</h2>
+        <h2 id="h2Results">Classement écologique (décroissant)</h2>
         <ol id="ranking"></ol>
 
-        <h3>Détails par article</h3>
+        <h3 id="h3Details">Détails par article</h3>
         <div id="cards" class="cards"></div>
       </section>
   </main>
 
   <footer>
     <small>
-      <p>
-        © Tous droits réservés • Automne 2025 • Projet à intérêt Écologique, 
-        incitant les lobis industriels à faire de meilleurs choix pour la préservation de notre environnement à tous. <br> 
+      <p id="footerMission">
+        © Tous droits réservés • Automne 2025 • Projet à intérêt Écologique,
+        incitant les lobis industriels à faire de meilleurs choix pour la préservation de notre environnement à tous. <br>
         Réalisé par JOEL SANDÉ, du Saguenay lac Saint-Jean. <br><br>
-        
-        L'argent d'accord, mais notre environnement d'abord. Certe on ne peut pas faire d'omelettes sans casser d'oeufs, mais faisons le moins de mal dans la mesure du possible. <br><br>
-        
-        Soyons nombreux à utiliser ce site, pour contraindre les fabriquants à se soucier de notre environnement. <br>
-        Partagez Massivement ! pour préserver notre environnement. <br><br>
 
-        <a href="/don">💚 Soutenir ce projet (don)</a>
+        L'argent d'accord, mais notre environnement d'abord. Certe on ne peut pas faire d'omelettes sans casser d'oeufs, mais faisons le moins de mal dans la mesure du possible. <br><br>
+
+        Soyons nombreux à utiliser ce site, pour contraindre les fabriquants à se soucier de notre environnement. <br>
+        Partagez Massivement ! pour préserver notre environnement.
       </p>
+      <p><a href="/don" id="donateLink">💚 Soutenir ce projet (don)</a></p>
     </small>
   </footer>
 
+  <script src="/static/i18n.js"></script>
   <script>
+    // --- i18n ---
+    let currentLang = 'fr';
+    function t() { return ecoT(currentLang); }
+
+    function applyIndexLang(lang) {
+      currentLang = lang;
+      const tr = t();
+      document.title = tr.index.title;
+      document.getElementById('introIntro').textContent = tr.index.introIntro;
+      document.getElementById('introDesire').textContent = tr.index.introDesire;
+      document.getElementById('introHelp').textContent = tr.index.introHelp;
+      document.getElementById('introPaste').textContent = tr.index.introPaste;
+      document.getElementById('li1').textContent = tr.index.li1;
+      document.getElementById('li2').textContent = tr.index.li2;
+      document.getElementById('li3').textContent = tr.index.li3;
+      document.getElementById('introRank').textContent = tr.index.introRank;
+      document.getElementById('linkImages').textContent = tr.common.linkImages;
+      document.getElementById('linkExemples').textContent = tr.common.linkExemples;
+      document.getElementById('notice').textContent = tr.common.notice;
+      document.getElementById('h2Compare').textContent = tr.index.h2Compare;
+      document.getElementById('addBtn').textContent = tr.index.addBtn;
+      document.getElementById('removeBtn').textContent = tr.index.removeBtn;
+      document.getElementById('runBtn').textContent = tr.index.runBtn;
+      document.getElementById('hintMinUrls').textContent = tr.index.hintMinUrls;
+      document.getElementById('h3Shortlist').textContent = tr.index.h3Shortlist;
+      document.getElementById('catMarketPriority').textContent = tr.index.catMarketPriority;
+      document.getElementById('catMarketGeneral').textContent = tr.index.catMarketGeneral;
+      document.getElementById('catRetailers').textContent = tr.index.catRetailers;
+      document.getElementById('catFashion').textContent = tr.index.catFashion;
+      document.getElementById('catHome').textContent = tr.index.catHome;
+      document.getElementById('catRefurb').textContent = tr.index.catRefurb;
+      document.getElementById('catEco').textContent = tr.index.catEco;
+      document.getElementById('shortlistHint').innerHTML = tr.index.shortlistHint;
+      document.getElementById('h2Results').textContent = tr.index.h2Results;
+      document.getElementById('h3Details').textContent = tr.index.h3Details;
+      document.getElementById('footerMission').innerHTML = tr.common.footerMissionHtml;
+      document.getElementById('donateLink').textContent = tr.common.donateLink;
+
+      // Met à jour les champs URL déjà créés (sans perdre les valeurs saisies)
+      [...inputsDiv.querySelectorAll('.input-row')].forEach((row, i) => {
+        row.querySelector('label').textContent = `${tr.index.js.urlLabel} ${i + 1}`;
+        row.querySelector('input').placeholder = tr.index.js.urlPlaceholder;
+      });
+    }
+
     // --- Gestion dynamique des entrées d'URL ---
     const inputsDiv = document.getElementById('inputs');
     const addBtn = document.getElementById('addBtn');
@@ -219,8 +263,8 @@
       const wrap = document.createElement('div');
       wrap.className = 'input-row';
       wrap.innerHTML = `
-        <label>URL de l’article ${i+1}</label>
-        <input type="url" placeholder="https://exemple.com/produit" value="${value}">
+        <label>${t().index.js.urlLabel} ${i+1}</label>
+        <input type="url" placeholder="${t().index.js.urlPlaceholder}" value="${value}">
       `;
       return wrap;
     }
@@ -230,6 +274,9 @@
         inputsDiv.appendChild(makeInput(inputsDiv.children.length));
       }
     }
+
+    // Applique la langue sauvegardée (met à jour currentLang) avant de créer les champs
+    buildEcoLangSwitcher(applyIndexLang);
 
     // 2 champs par défaut
     ensureAtLeast(2);
@@ -251,7 +298,7 @@
       runBtn.disabled = b;
       addBtn.disabled = b;
       removeBtn.disabled = b;
-      msg.textContent = b ? "Analyse en cours… ⏳" : "";
+      msg.textContent = b ? t().index.js.analyzing : "";
     }
 
     //---------------------------------------------------------//
@@ -271,7 +318,7 @@
           urls.forEach((u, i) => { if (inputs[i]) inputs[i].value = u; });
 
           // petit message sympa
-          msg.textContent = `${urls.length} lien(s) importé(s) depuis la recherche par images.`;
+          msg.textContent = t().index.js.importedMsg.replace('{n}', urls.length);
           msg.classList.add('ok');
           setTimeout(() => { msg.textContent = ""; msg.classList.remove('ok'); }, 2000);
 
@@ -288,7 +335,7 @@
     runBtn.onclick = async () => {
       const urls = getUrls();
       if (urls.length < 2) {
-        msg.textContent = "Ajoute au moins 2 URL.";
+        msg.textContent = t().index.js.needTwoUrls;
         return;
       }
       setBusy(true);
@@ -303,7 +350,9 @@
           body: JSON.stringify({ urls })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Erreur inconnue");
+        if (!res.ok) throw new Error(data.error || t().index.js.unknownError);
+
+        const jsTr = t().index.js;
 
         // Affiche le classement
         data.results.forEach(item => {
@@ -318,24 +367,24 @@
           card.className = 'card';
           card.innerHTML = `
             <h4>${escapeHtml(item.title)}</h4>
-            <p><a href="${item.url}" target="_blank" rel="noopener">Ouvrir la page</a></p>
-            <p><b>Score global :</b> ${item.eco_score}  |  <b>Rang :</b> ${item.rank}</p>
+            <p><a href="${item.url}" target="_blank" rel="noopener">${jsTr.openPage}</a></p>
+            <p><b>${jsTr.scoreLabel}</b> ${item.eco_score}  |  <b>${jsTr.rankLabel}</b> ${item.rank}</p>
             <div class="grid">
-              <div><b>Matériaux</b><br>${escapeHtml(f.materials || "—")}</div>
-              <div><b>Eau (L)</b><br>${fmtNum(f.water_use_liters)}</div>
-              <div><b>Énergie (kWh)</b><br>${fmtNum(f.energy_use_kwh)}</div>
-              <div><b>CO₂e (kg)</b><br>${fmtNum(f.co2e_kg)}</div>
-              <div><b>Bio-dégradabilité</b><br>${escapeHtml(f.biodegradability || "unknown")}</div>
-              <div><b>Recyclabilité</b><br>${escapeHtml(f.recyclability || "unknown")}</div>
-              <div><b>Durabilité/Réparabilité</b><br>${escapeHtml(f.durability_repairability || "unknown")}</div>
-              <div><b>Certifications</b><br>${(f.certifications||[]).map(escapeHtml).join(", ") || "—"}</div>
-              <div><b>Packaging</b><br>${escapeHtml(f.packaging || "—")}</div>
-              <div><b>Transport</b><br>${escapeHtml(f.transport || "—")}</div>
-              <div><b>Notes</b><br>${escapeHtml(f.other_notes || "—")}</div>
-              <div><b>Confiance</b><br>${(f.confidence!=null)? f.confidence : "—"}</div>
+              <div><b>${jsTr.lblMaterials}</b><br>${escapeHtml(f.materials || "—")}</div>
+              <div><b>${jsTr.lblWater}</b><br>${fmtNum(f.water_use_liters)}</div>
+              <div><b>${jsTr.lblEnergy}</b><br>${fmtNum(f.energy_use_kwh)}</div>
+              <div><b>${jsTr.lblCo2e}</b><br>${fmtNum(f.co2e_kg)}</div>
+              <div><b>${jsTr.lblBiodeg}</b><br>${escapeHtml(f.biodegradability || "unknown")}</div>
+              <div><b>${jsTr.lblRecyc}</b><br>${escapeHtml(f.recyclability || "unknown")}</div>
+              <div><b>${jsTr.lblDurability}</b><br>${escapeHtml(f.durability_repairability || "unknown")}</div>
+              <div><b>${jsTr.lblCertifications}</b><br>${(f.certifications||[]).map(escapeHtml).join(", ") || "—"}</div>
+              <div><b>${jsTr.lblPackaging}</b><br>${escapeHtml(f.packaging || "—")}</div>
+              <div><b>${jsTr.lblTransport}</b><br>${escapeHtml(f.transport || "—")}</div>
+              <div><b>${jsTr.lblNotes}</b><br>${escapeHtml(f.other_notes || "—")}</div>
+              <div><b>${jsTr.lblConfidence}</b><br>${(f.confidence!=null)? f.confidence : "—"}</div>
             </div>
             <details>
-              <summary>Voir sous-scores</summary>
+              <summary>${jsTr.viewSubscores}</summary>
               <pre>${escapeHtml(JSON.stringify(s, null, 2))}</pre>
             </details>
           `;
@@ -346,13 +395,13 @@
         if (data.errors && data.errors.length) {
           const errBlock = document.createElement('div');
           errBlock.className = 'msg error';
-          errBlock.innerHTML = "<b>URLs en erreur :</b><br>" + data.errors.map(e => `${e.url} → ${escapeHtml(e.error)}`).join("<br>");
+          errBlock.innerHTML = `<b>${jsTr.errorsTitle}</b><br>` + data.errors.map(e => `${e.url} → ${escapeHtml(e.error)}`).join("<br>");
           cardsDiv.prepend(errBlock);
         }
 
         resultsSec.classList.remove('hidden');
       } catch (e) {
-        msg.textContent = "Erreur : " + e.message;
+        msg.textContent = t().index.js.errorPrefix + e.message;
       } finally {
         setBusy(false);
       }

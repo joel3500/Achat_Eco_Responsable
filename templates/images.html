@@ -58,17 +58,16 @@
       <h1><img src="/static/loupe_1.png" id="preview" alt="Aperçu"
                style="height:60px;width:auto;max-width:100%;
                       border-radius:10px;border:1px solid #1f2937;object-fit:contain"/>
-                       Recherche par images</h1>
+                       <span id="h1Title">Recherche par images</span></h1>
       <p class="small">
           <small>
-            Uploadez une image → puis nous retrouvons les points de vente en ligne : <br>
-            Uploade l'image d'un objet que tu désires acheter ( accessoire - vêtement - véhicule - ... ) 
-            et nous t'aidons à le retrouver en ligne. Avec si possible le prix qui est affiché.
-            <br><a href="/">← Retour à la page de l'Achat Eco-Responsable</a>
-            <br><a href="/exemples">← je ne sais pas quel genre d'articles je peux comparer ici (voir des exemples)</a>
+            <span id="introLine1">Uploadez une image → puis nous retrouvons les points de vente en ligne :</span> <br>
+            <span id="introLine2">Uploade l'image d'un objet que tu désires acheter ( accessoire - vêtement - véhicule - ... ) et nous t'aidons à le retrouver en ligne. Avec si possible le prix qui est affiché.</span>
+            <br><a href="/" id="linkHome">← Retour à la page de l'Achat Eco-Responsable</a>
+            <br><a href="/exemples" id="linkExemples">← je ne sais pas quel genre d'articles je peux comparer ici (voir des exemples)</a>
           </small>
       </p>
-      <p class="notice">
+      <p class="notice" id="notice">
         💻 Ce site fonctionne beaucoup mieux sur un ordinateur ou une tablette (plus facile pour copier-coller les URLs) que sur un téléphone. L'utilisation mobile n'est pas encore optimisée, désolé pour l'inconvénient.
       </p>
   </header>
@@ -76,9 +75,9 @@
   <main class="container">
     <section class="card">
       <form method="post" enctype="multipart/form-data">
-        <label for="file"><b>Choisir une image</b></label><br>
+        <label for="file"><b id="labelChooseImage">Choisir une image</b></label><br>
         <input id="file" name="file" type="file" accept="image/*" required>
-        <p class="hint">Formats usuels (jpg, png, jpeg, gif, webp). Taille <5Mo svp</p>
+        <p class="hint" id="hintFormats">Formats usuels (jpg, png, jpeg, gif, webp). Taille <5Mo svp</p>
 
         <!-- Aperçu immédiat de l’image choisie -->
         <div id="previewWrap" style="margin:10px 0; display:none;">
@@ -87,7 +86,7 @@
                       border-radius:10px;border:1px solid #1f2937;object-fit:contain"/>
         </div>
 
-        <button class="btn primary" type="submit">Lancer la recherche</button>
+        <button class="btn primary" type="submit" id="btnSearch">Lancer la recherche</button>
       </form>
     </section>
 
@@ -97,7 +96,7 @@
 
     {% if result %}
       <section class="card">
-        <h3>Image sélectionnée</h3>
+        <h3 id="h3Selected">Image sélectionnée</h3>
         {% if result.query_preview_b64 %}
           <img src="{{ result.query_preview_b64 }}" alt="Image requête"
                style="height:300px;width:auto;max-width:100%;
@@ -107,12 +106,12 @@
 
       {% if result.description %}
       <section class="card">
-        <p class="hint">🔍 Recherche lancée pour : <b>{{ result.description }}</b></p>
+        <p class="hint"><span id="searchForLabel">🔍 Recherche lancée pour :</span> <b>{{ result.description }}</b></p>
       </section>
       {% endif %}
 
       <section class="card">
-        <h3>Correspondances trouvées</h3>
+        <h3 id="h3Matches">Correspondances trouvées</h3>
         {% if result['items']|length > 0 %}
           <ul class="match-list">
             {% for it in result['items'] %}
@@ -132,11 +131,11 @@
           </ul>
         {% else %}
           <p class="hint">
-            Aucune correspondance trouvée.
+            <span id="noMatches">Aucune correspondance trouvée.</span>
             {% if not result.description %}
-              Le LLM n’a pas pu décrire l’image — vérifie que <code>OPENAI_API_KEY</code> est bien configuré dans le fichier <code>.env</code>.
+              <span id="noDescError">Le LLM n'a pas pu décrire l'image — vérifie que <code>OPENAI_API_KEY</code> est bien configuré.</span>
             {% else %}
-              Vérifie que <code>BING_VISION_KEY</code> est bien configuré dans le fichier <code>.env</code>.
+              <span id="noKeyError">Vérifie que <code>GOOGLE_CSE_KEY</code> et <code>GOOGLE_CSE_ID</code> sont bien configurés.</span>
             {% endif %}
           </p>
         {% endif %}
@@ -146,20 +145,20 @@
 
   <footer>
     <small>
-      <p>
+      <p id="footerMission">
         © Tous droits réservés • Automne 2025 • Projet à intérêt Écologique, incitant les lobis industriels à faire de meilleurs choix pour la préservation de notre environnement à tous. <br>
         Produit par JOEL SANDÉ, du Saguenay Lac Saint-Jean. <br><br>
 
         L'argent d'accord, mais notre environnement d'abord. Certe on ne peut pas faire d'omelettes sans casser d'oeufs, mais faisons le moins de mal dans la mesure du possible. <br><br>
 
         Soyons nombreux à utiliser ce site, pour contraindre les fabriquants à se soucier de notre environnement. <br>
-        Partagez Massivement ! pour préserver notre environnement. <br><br>
-
-        <a href="/don">💚 Soutenir ce projet (don)</a>
+        Partagez Massivement ! pour préserver notre environnement.
       </p>
+      <p><a href="/don" id="donateLink">💚 Soutenir ce projet (don)</a></p>
     </small>
   </footer>
 
+  <script src="/static/i18n.js"></script>
   <script>
     // Aperçu immédiat du fichier choisi
     const input = document.getElementById('file');
@@ -172,6 +171,33 @@
       reader.onload = e => { img.src = e.target.result; wrap.style.display = 'block'; };
       reader.readAsDataURL(f);
     });
+
+    function applyImagesLang(lang) {
+      const tr = ecoT(lang);
+      document.title = tr.images.title;
+      const set = (id, val, html) => {
+        const el = document.getElementById(id);
+        if (el) { html ? (el.innerHTML = val) : (el.textContent = val); }
+      };
+      set('h1Title', tr.images.h1);
+      set('introLine1', tr.images.introLine1);
+      set('introLine2', tr.images.introLine2);
+      set('linkHome', tr.common.linkHome);
+      set('linkExemples', tr.common.linkExemples);
+      set('notice', tr.common.notice);
+      set('labelChooseImage', tr.images.labelChooseImage);
+      set('hintFormats', tr.images.hintFormats);
+      set('btnSearch', tr.images.btnSearch);
+      set('h3Selected', tr.images.h3Selected);
+      set('searchForLabel', tr.images.searchForLabel);
+      set('h3Matches', tr.images.h3Matches);
+      set('noMatches', tr.images.noMatches);
+      set('noDescError', tr.images.noDescErrorHtml, true);
+      set('noKeyError', tr.images.noKeyErrorHtml, true);
+      set('footerMission', tr.common.footerMissionHtml, true);
+      set('donateLink', tr.common.donateLink);
+    }
+    buildEcoLangSwitcher(applyImagesLang);
   </script>
 </body>
 </html>

@@ -44,21 +44,20 @@
     <h1><img src="/static/panier_achat_eco_4.png" id="preview" alt="Aperçu"
              style="height:60px;width:auto;max-width:100%;
                     border-radius:10px;border:1px solid #1f2937;object-fit:contain"/>
-                     Quels articles puis-je comparer ?</h1>
+                     <span id="h1Title">Quels articles puis-je comparer ?</span></h1>
     <p class="small">
       <small>
-        Pas d'idée par où commencer ? Voici un guide avec des exemples variés d'articles pour lesquels
-        notre analyse écologique fait du sens. <br>
-        <a href="/">← Retour à la page de l'Achat Eco-Responsable</a> <br>
-        <a href="/images">← j'ai une image dont je cherche les points de vente en ligne</a>
+        <span id="introText">Pas d'idée par où commencer ? Voici un guide avec des exemples variés d'articles pour lesquels notre analyse écologique fait du sens.</span> <br>
+        <a href="/" id="linkHome">← Retour à la page de l'Achat Eco-Responsable</a> <br>
+        <a href="/images" id="linkImages">← j'ai une image dont je cherche les points de vente en ligne</a>
       </small>
     </p>
   </header>
 
   <main class="container">
     <section class="card">
-      <h2>Le principe en bref</h2>
-      <p class="hint">
+      <h2 id="h2Principle">Le principe en bref</h2>
+      <p class="hint" id="principleText">
         Dès qu'un produit a une page web décrivant ses caractéristiques (matériaux, certifications,
         emballage, fabrication...), on peut généralement l'analyser. Plus la page contient d'informations
         concrètes (fiche produit détaillée, JSON-LD, labels environnementaux), meilleure sera l'analyse.
@@ -68,78 +67,78 @@
     </section>
 
     <section class="site-shortlist">
-      <h3>Catégories et exemples concrets</h3>
+      <h3 id="h3Categories">Catégories et exemples concrets</h3>
 
-      <h4>👕 Vêtements & textile</h4>
-      <ul class="site-ul">
-        <li>T-shirt en coton biologique <i>vs</i> t-shirt en polyester classique</li>
-        <li>Manteau d'hiver en duvet <i>vs</i> manteau en fibres synthétiques recyclées</li>
-        <li>Jeans en denim régulier <i>vs</i> denim fabriqué avec moins d'eau</li>
-        <li>Chaussures de course en matériaux recyclés <i>vs</i> modèle classique</li>
+      <h4>👕 <span id="catClothingTitle">Vêtements & textile</span></h4>
+      <ul class="site-ul" id="catClothingList">
+        <li>T-shirt en coton biologique vs t-shirt en polyester classique</li>
+        <li>Manteau d'hiver en duvet vs manteau en fibres synthétiques recyclées</li>
+        <li>Jeans en denim régulier vs denim fabriqué avec moins d'eau</li>
+        <li>Chaussures de course en matériaux recyclés vs modèle classique</li>
       </ul>
 
-      <h4>🛋️ Maison, literie & meubles</h4>
-      <ul class="site-ul">
-        <li>Housse de couette en coton égyptien <i>vs</i> en matières synthétiques</li>
-        <li>Cadre de lit en bois certifié FSC <i>vs</i> en composite/plastique</li>
-        <li>Matelas en mousse classique <i>vs</i> matelas en matériaux naturels</li>
+      <h4>🛋️ <span id="catHomeTitle">Maison, literie & meubles</span></h4>
+      <ul class="site-ul" id="catHomeList">
+        <li>Housse de couette en coton égyptien vs en matières synthétiques</li>
+        <li>Cadre de lit en bois certifié FSC vs en composite/plastique</li>
+        <li>Matelas en mousse classique vs matelas en matériaux naturels</li>
       </ul>
 
-      <h4>💻 Électronique & accessoires</h4>
-      <ul class="site-ul">
+      <h4>💻 <span id="catElecTitle">Électronique & accessoires</span></h4>
+      <ul class="site-ul" id="catElecList">
         <li>Écouteurs sans fil de deux marques différentes</li>
-        <li>Ordinateur portable reconditionné <i>vs</i> neuf</li>
-        <li>Téléphone reconditionné (Back Market, Poshmark) <i>vs</i> neuf</li>
+        <li>Ordinateur portable reconditionné vs neuf</li>
+        <li>Téléphone reconditionné (Back Market, Poshmark) vs neuf</li>
         <li>Montre connectée : matériaux du boîtier, réparabilité</li>
       </ul>
 
-      <h4>🔌 Électroménagers</h4>
-      <ul class="site-ul">
+      <h4>🔌 <span id="catApplTitle">Électroménagers</span></h4>
+      <ul class="site-ul" id="catApplList">
         <li>Grille-pain ou aspirateur : deux modèles avec certification Energy Star ou non</li>
-        <li>Petit électroménager reconditionné <i>vs</i> neuf</li>
+        <li>Petit électroménager reconditionné vs neuf</li>
       </ul>
 
-      <h4>🏕️ Sport & plein air</h4>
-      <ul class="site-ul">
-        <li>Gourde réutilisable en inox <i>vs</i> en plastique</li>
-        <li>Sac à dos ou tente : matériaux imperméables recyclés <i>vs</i> classiques</li>
+      <h4>🏕️ <span id="catSportTitle">Sport & plein air</span></h4>
+      <ul class="site-ul" id="catSportList">
+        <li>Gourde réutilisable en inox vs en plastique</li>
+        <li>Sac à dos ou tente : matériaux imperméables recyclés vs classiques</li>
         <li>Vélo ou équipement d'extérieur de deux marques</li>
       </ul>
 
-      <h4>🧴 Produits ménagers & soins personnels</h4>
-      <ul class="site-ul">
-        <li>Savon à vaisselle concentré <i>vs</i> format régulier (moins d'emballage/transport)</li>
-        <li>Shampoing en bouteille rechargeable <i>vs</i> bouteille jetable</li>
-        <li>Brosse à dents en bambou <i>vs</i> en plastique</li>
+      <h4>🧴 <span id="catHouseholdTitle">Produits ménagers & soins personnels</span></h4>
+      <ul class="site-ul" id="catHouseholdList">
+        <li>Savon à vaisselle concentré vs format régulier (moins d'emballage/transport)</li>
+        <li>Shampoing en bouteille rechargeable vs bouteille jetable</li>
+        <li>Brosse à dents en bambou vs en plastique</li>
       </ul>
 
-      <h4>🧸 Jouets & articles pour enfants</h4>
-      <ul class="site-ul">
-        <li>Jouets en bois certifié <i>vs</i> jouets en plastique</li>
+      <h4>🧸 <span id="catToysTitle">Jouets & articles pour enfants</span></h4>
+      <ul class="site-ul" id="catToysList">
+        <li>Jouets en bois certifié vs jouets en plastique</li>
         <li>Poussette ou siège d'auto : matériaux et durabilité</li>
       </ul>
 
-      <h4>🎒 Bagagerie & accessoires du quotidien</h4>
-      <ul class="site-ul">
-        <li>Sac à dos ou valise en matériaux recyclés <i>vs</i> classique</li>
-        <li>Portefeuille en cuir <i>vs</i> en matériaux véganes/recyclés</li>
+      <h4>🎒 <span id="catBagsTitle">Bagagerie & accessoires du quotidien</span></h4>
+      <ul class="site-ul" id="catBagsList">
+        <li>Sac à dos ou valise en matériaux recyclés vs classique</li>
+        <li>Portefeuille en cuir vs en matériaux véganes/recyclés</li>
       </ul>
 
-      <h4>🔨 Bricolage & rénovation</h4>
-      <ul class="site-ul">
-        <li>Peinture faible en COV <i>vs</i> peinture classique</li>
-        <li>Isolant écologique <i>vs</i> isolant standard</li>
+      <h4>🔨 <span id="catDiyTitle">Bricolage & rénovation</span></h4>
+      <ul class="site-ul" id="catDiyList">
+        <li>Peinture faible en COV vs peinture classique</li>
+        <li>Isolant écologique vs isolant standard</li>
       </ul>
 
-      <p class="hint">
+      <p class="hint" id="tipText">
         Astuce : pour un résultat pertinent, compare des articles qui répondent au <b>même besoin</b>
         (deux écouteurs, deux manteaux d'hiver, deux gourdes...) plutôt que des objets complètement différents.
       </p>
     </section>
 
     <section class="card">
-      <h3>⚠️ Ce qui fonctionne moins bien</h3>
-      <ul class="site-ul">
+      <h3 id="h3Warning">⚠️ Ce qui fonctionne moins bien</h3>
+      <ul class="site-ul" id="warnList">
         <li>Les produits <b>alimentaires périssables</b> (fruits, légumes, viande...) — pas de fiche produit à analyser.</li>
         <li>Les <b>services</b> (abonnements, voyages, assurances...) — ce ne sont pas des objets physiques.</li>
         <li>Les pages produit très pauvres en détails (peu ou pas de description, pas de fiche technique).</li>
@@ -148,14 +147,14 @@
     </section>
 
     <section class="card">
-      <p class="hint">Prêt à essayer avec tes propres articles ?</p>
-      <a class="btn primary" href="/">Comparer mes articles →</a>
+      <p class="hint" id="ctaText">Prêt à essayer avec tes propres articles ?</p>
+      <a class="btn primary" href="/" id="ctaBtn">Comparer mes articles →</a>
     </section>
   </main>
 
   <footer>
     <small>
-      <p>
+      <p id="footerMission">
         © Tous droits réservés • Automne 2025 • Projet à intérêt Écologique,
         incitant les lobis industriels à faire de meilleurs choix pour la préservation de notre environnement à tous. <br>
         Réalisé par JOEL SANDÉ, du Saguenay Lac Saint-Jean. <br><br>
@@ -163,11 +162,62 @@
         L'argent d'accord, mais notre environnement d'abord. Certe on ne peut pas faire d'omelettes sans casser d'oeufs, mais faisons le moins de mal dans la mesure du possible. <br><br>
 
         Soyons nombreux à utiliser ce site, pour contraindre les fabriquants à se soucier de notre environnement. <br>
-        Partagez Massivement ! pour préserver notre environnement. <br><br>
-
-        <a href="/don">💚 Soutenir ce projet (don)</a>
+        Partagez Massivement ! pour préserver notre environnement.
       </p>
+      <p><a href="/don" id="donateLink">💚 Soutenir ce projet (don)</a></p>
     </small>
   </footer>
+
+  <script src="/static/i18n.js"></script>
+  <script>
+    function fillList(id, items) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = items.map(t => `<li>${t}</li>`).join('');
+    }
+
+    function applyExemplesLang(lang) {
+      const tr = ecoT(lang);
+      const ex = tr.exemples;
+      document.title = ex.title;
+      const set = (id, val, html) => {
+        const el = document.getElementById(id);
+        if (el) { html ? (el.innerHTML = val) : (el.textContent = val); }
+      };
+      set('h1Title', ex.h1);
+      set('introText', ex.introText);
+      set('linkHome', tr.common.linkHome);
+      set('linkImages', tr.common.linkImages);
+      set('h2Principle', ex.h2Principle);
+      set('principleText', ex.principleHtml, true);
+      set('h3Categories', ex.h3Categories);
+      set('catClothingTitle', ex.catClothingTitle);
+      set('catHomeTitle', ex.catHomeTitle);
+      set('catElecTitle', ex.catElecTitle);
+      set('catApplTitle', ex.catApplTitle);
+      set('catSportTitle', ex.catSportTitle);
+      set('catHouseholdTitle', ex.catHouseholdTitle);
+      set('catToysTitle', ex.catToysTitle);
+      set('catBagsTitle', ex.catBagsTitle);
+      set('catDiyTitle', ex.catDiyTitle);
+      fillList('catClothingList', ex.catClothingLi);
+      fillList('catHomeList', ex.catHomeLi);
+      fillList('catElecList', ex.catElecLi);
+      fillList('catApplList', ex.catApplLi);
+      fillList('catSportList', ex.catSportLi);
+      fillList('catHouseholdList', ex.catHouseholdLi);
+      fillList('catToysList', ex.catToysLi);
+      fillList('catBagsList', ex.catBagsLi);
+      fillList('catDiyList', ex.catDiyLi);
+      set('tipText', ex.tipHtml, true);
+      set('h3Warning', ex.h3Warning);
+      fillList('warnList', ex.warnLiHtml);
+      set('ctaText', ex.ctaText);
+      set('ctaBtn', ex.ctaBtn);
+      set('footerMission', tr.common.footerMissionHtml, true);
+      set('donateLink', tr.common.donateLink);
+    }
+    buildEcoLangSwitcher(applyExemplesLang);
+  </script>
 </body>
 </html>

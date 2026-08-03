@@ -49,18 +49,18 @@
     <h1><img src="/static/panier_achat_eco_4.png" id="preview" alt="Aperçu"
              style="height:60px;width:auto;max-width:100%;
                     border-radius:10px;border:1px solid #1f2937;object-fit:contain"/>
-                     Soutenir ce projet</h1>
+                     <span id="h1Title">Soutenir ce projet</span></h1>
     <p class="small">
       <small>
-        🌱 Merci de ton soutien. <br>
-        <a href="/">← Retour à la page de l'Achat Eco-Responsable</a>
+        <span id="eyebrow">🌱 Merci de ton soutien.</span> <br>
+        <a href="/" id="linkHome">← Retour à la page de l'Achat Eco-Responsable</a>
       </small>
     </p>
   </header>
 
   <main class="container donate-page">
     <section class="interac-box">
-      <p class="lead">💸 Faire un virement Interac à <b>sandejoel@yahoo.ca</b></p>
+      <p class="lead" id="interacLead">💸 Faire un virement Interac à <b>sandejoel@yahoo.ca</b></p>
       <div class="email-row">
         <code id="emailCode">sandejoel@yahoo.ca</code>
         <button class="copy-btn" id="copyBtn" type="button">📋 Copier l'adresse</button>
@@ -68,7 +68,7 @@
       <p class="copy-toast" id="copyToast">Copié ! Colle cette adresse dans ton application bancaire pour envoyer le virement.</p>
     </section>
 
-    <p class="hint">
+    <p class="hint" id="missionText">
       Soyez généreux, mais sans aucune obligation.<br><br>
       Tes dons servent à couvrir les frais d'hébergement du serveur et les coûts des API
       (analyse par intelligence artificielle, recherche d'images, recherche web) qui font
@@ -77,8 +77,8 @@
     </p>
 
     <section class="region-section">
-      <h3>🇨🇦 Tu es au Canada ?</h3>
-      <p class="hint">L'Interac fonctionne uniquement entre comptes bancaires canadiens. Clique sur ta banque pour accéder directement à ton compte en ligne et envoyer ton virement.</p>
+      <h3 id="canadaTitle">🇨🇦 Tu es au Canada ?</h3>
+      <p class="hint" id="canadaHint">L'Interac fonctionne uniquement entre comptes bancaires canadiens. Clique sur ta banque pour accéder directement à ton compte en ligne et envoyer ton virement.</p>
       <div class="bank-grid">
         <a class="bank-link" href="https://www.desjardins.com/" target="_blank" rel="noopener noreferrer">Desjardins</a>
         <a class="bank-link" href="https://www.rbc.com/" target="_blank" rel="noopener noreferrer">RBC</a>
@@ -92,15 +92,15 @@
     </section>
 
     <section class="region-section">
-      <h3>🌍 Ailleurs dans le monde ?</h3>
-      <p class="hint">L'Interac ne fonctionne pas hors Canada. Par carte de crédit ou de débit, où que tu sois, PayPal fonctionne sans compte requis.</p>
-      <a class="donate-btn donate-btn-paypal" href="https://paypal.me/maitrejoel2026" target="_blank" rel="noopener noreferrer">❤️ Faire un don via PayPal</a>
+      <h3 id="worldTitle">🌍 Ailleurs dans le monde ?</h3>
+      <p class="hint" id="worldHint">L'Interac ne fonctionne pas hors Canada. Par carte de crédit ou de débit, où que tu sois, PayPal fonctionne sans compte requis.</p>
+      <a class="donate-btn donate-btn-paypal" id="paypalBtn" href="https://paypal.me/maitrejoel2026" target="_blank" rel="noopener noreferrer">❤️ Faire un don via PayPal</a>
     </section>
   </main>
 
   <footer>
     <small>
-      <p>
+      <p id="footerMission">
         © Tous droits réservés • Automne 2025 • Projet à intérêt Écologique,
         incitant les lobis industriels à faire de meilleurs choix pour la préservation de notre environnement à tous. <br>
         Réalisé par JOEL SANDÉ, du Saguenay Lac Saint-Jean. <br><br>
@@ -108,19 +108,20 @@
     </small>
   </footer>
 
+  <script src="/static/i18n.js"></script>
   <script>
+    const DON_EMAIL = 'sandejoel@yahoo.ca';
     document.getElementById('copyBtn').addEventListener('click', () => {
-      const EMAIL = 'sandejoel@yahoo.ca';
       const toast = document.getElementById('copyToast');
       function showToast(){
         toast.style.display = 'block';
         setTimeout(() => { toast.style.display = 'none'; }, 4000);
       }
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(EMAIL).then(showToast).catch(showToast);
+        navigator.clipboard.writeText(DON_EMAIL).then(showToast).catch(showToast);
       } else {
         const ta = document.createElement('textarea');
-        ta.value = EMAIL;
+        ta.value = DON_EMAIL;
         ta.style.position = 'fixed';
         ta.style.opacity = '0';
         document.body.appendChild(ta);
@@ -130,6 +131,30 @@
         showToast();
       }
     });
+
+    function applyDonLang(lang) {
+      const tr = ecoT(lang);
+      const dp = tr.don;
+      document.title = dp.h1 + " — Achat Éco-Responsable";
+      const set = (id, val, html) => {
+        const el = document.getElementById(id);
+        if (el) { html ? (el.innerHTML = val) : (el.textContent = val); }
+      };
+      set('h1Title', dp.h1);
+      set('eyebrow', dp.eyebrow);
+      set('linkHome', tr.common.linkHome);
+      set('interacLead', dp.interacLead.replace('{email}', `<b>${DON_EMAIL}</b>`), true);
+      set('copyBtn', dp.copyBtn);
+      set('copyToast', dp.copyToast);
+      set('missionText', dp.missionText);
+      set('canadaTitle', dp.canadaTitle);
+      set('canadaHint', dp.canadaHint);
+      set('worldTitle', dp.worldTitle);
+      set('worldHint', dp.worldHint);
+      set('paypalBtn', dp.paypalBtn);
+      set('footerMission', dp.footerHtml, true);
+    }
+    buildEcoLangSwitcher(applyDonLang);
   </script>
 </body>
 </html>

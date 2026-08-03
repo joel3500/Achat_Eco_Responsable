@@ -62,3 +62,11 @@ footer small p {text-align: justify; justify-content:space-between;}
 .donate-btn:hover{transform:translateY(-1px);opacity:.92}
 .donate-btn-paypal{background:#003087;color:#fff}
 .donate-btn-interac{background:var(--card);color:var(--brand);border:2px solid var(--brand)}
+
+#langSwitcher{position:fixed;top:12px;right:12px;display:flex;flex-wrap:wrap;gap:6px;z-index:100;max-width:200px;justify-content:flex-end}
+.lang-btn{background:var(--card);border:1px solid #334155;color:var(--fg);border-radius:999px;font-family:inherit;font-size:.78rem;font-weight:700;padding:5px 11px;cursor:pointer;transition:background .2s, transform .15s}
+.lang-btn:hover{transform:translateY(-1px)}
+.lang-btn.active{background:var(--brand);color:#052e12;border-color:var(--brand)}
+@media (max-width:600px){#langSwitcher{top:6px;right:6px;max-width:150px}.lang-btn{font-size:.72rem;padding:4px 8px}}
+html[dir="rtl"] #langSwitcher{right:auto;left:12px;justify-content:flex-start}
+@media (max-width:600px){html[dir="rtl"] #langSwitcher{left:6px}}
