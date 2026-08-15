@@ -99,12 +99,13 @@
 
       <section class="stat-section">
         <h2>🌍 Provenance géographique</h2>
+        <p class="hint">La ville est une estimation approximative de géolocalisation IP (certains FAI régionaux enregistrent leur bloc d'IP sous une autre ville, ex. le hub réseau). La région/province est plus fiable.</p>
         {% if locations %}
           <div class="table-wrap">
             <table class="nice-table">
               <thead>
                 <tr>
-                  <th class="rank-cell">#</th><th>Ville</th><th>Pays</th>
+                  <th class="rank-cell">#</th><th>Ville (approx.)</th><th>Région</th><th>Pays</th>
                   <th>Visiteurs</th><th>Soumissions</th>
                 </tr>
               </thead>
@@ -113,6 +114,7 @@
                   <tr>
                     <td class="rank-cell">{{ loop.index }}</td>
                     <td>{{ l.city }}</td>
+                    <td>{{ l.region }}</td>
                     <td>{{ l.country }}</td>
                     <td>{{ l.visitors }}</td>
                     <td>{{ l.submissions }}</td>

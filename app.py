@@ -137,14 +137,19 @@ def init_stats_db():
     conn = sqlite3.connect(STATS_DB_PATH)
     conn.execute("""CREATE TABLE IF NOT EXISTS visits (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ip_hash TEXT, city TEXT, country TEXT, page TEXT,
+        ip_hash TEXT, city TEXT, region TEXT, country TEXT, page TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS submissions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ip_hash TEXT, city TEXT, country TEXT, url TEXT, category TEXT,
+        ip_hash TEXT, city TEXT, region TEXT, country TEXT, url TEXT, category TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )""")
+    # Migration douce : ajoute la colonne 'region' si la DB existait déjà sans elle.
+    for table in ("visits", "submissions"):
+        cols = [r[1] for r in conn.execute(f"PRAGMA table_info({table})")]
+        if "region" not in cols:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN region TEXT")
     conn.commit()
     conn.close()
 
@@ -159,24 +164,37 @@ def _hash_ip(ip: str) -> str:
 _geo_cache: Dict[str, tuple] = {}
 
 def geolocate_ip(ip: str) -> tuple:
-    """Retourne (ville, pays) pour une IP. Ne fait jamais planter l'appelant."""
+    """Retourne (ville, région, pays) pour une IP. Ne fait jamais planter l'appelant.
+
+    La ville est une estimation "meilleur effort" : pour certains FAI régionaux
+    (ex: Altima Telecom au Saguenay–Lac-Saint-Jean), le bloc d'IP est enregistré
+    administrativement dans une autre ville (souvent Montréal) même si l'abonné
+    est ailleurs. La région (province/état) est nettement plus fiable.
+    """
     if ip in _geo_cache:
         return _geo_cache[ip]
 
     try:
         if ipaddress.ip_address(ip).is_private:
-            _geo_cache[ip] = ("Local", "Local")
+            _geo_cache[ip] = ("Local", "Local", "Local")
             return _geo_cache[ip]
     except ValueError:
-        _geo_cache[ip] = ("Inconnu", "Inconnu")
+        _geo_cache[ip] = ("Inconnu", "Inconnu", "Inconnu")
         return _geo_cache[ip]
 
-    result = ("Inconnu", "Inconnu")
+    result = ("Inconnu", "Inconnu", "Inconnu")
     try:
-        r = requests.get(f"http://ip-api.com/json/{ip}", params={"fields": "status,country,city"}, timeout=3)
+        r = requests.get(
+            f"http://ip-api.com/json/{ip}",
+            params={"fields": "status,country,regionName,city"}, timeout=3
+        )
         data = r.json()
         if data.get("status") == "success":
-            result = (data.get("city") or "Inconnu", data.get("country") or "Inconnu")
+            result = (
+                data.get("city") or "Inconnu",
+                data.get("regionName") or "Inconnu",
+                data.get("country") or "Inconnu",
+            )
     except Exception:
         pass
     _geo_cache[ip] = result
@@ -185,11 +203,11 @@ def geolocate_ip(ip: str) -> tuple:
 def record_visit(page: str) -> None:
     try:
         ip = _client_ip()
-        city, country = geolocate_ip(ip)
+        city, region, country = geolocate_ip(ip)
         conn = sqlite3.connect(STATS_DB_PATH)
         conn.execute(
-            "INSERT INTO visits (ip_hash, city, country, page) VALUES (?,?,?,?)",
-            (_hash_ip(ip), city, country, page)
+            "INSERT INTO visits (ip_hash, city, region, country, page) VALUES (?,?,?,?,?)",
+            (_hash_ip(ip), city, region, country, page)
         )
         conn.commit()
         conn.close()
@@ -199,11 +217,11 @@ def record_visit(page: str) -> None:
 def record_submission(url: str, category: str) -> None:
     try:
         ip = _client_ip()
-        city, country = geolocate_ip(ip)
+        city, region, country = geolocate_ip(ip)
         conn = sqlite3.connect(STATS_DB_PATH)
         conn.execute(
-            "INSERT INTO submissions (ip_hash, city, country, url, category) VALUES (?,?,?,?,?)",
-            (_hash_ip(ip), city, country, url, category or "autre")
+            "INSERT INTO submissions (ip_hash, city, region, country, url, category) VALUES (?,?,?,?,?,?)",
+            (_hash_ip(ip), city, region, country, url, category or "autre")
         )
         conn.commit()
         conn.close()
@@ -873,12 +891,12 @@ def stats_page():
     ]
 
     visitors_by_loc = {
-        (r["city"], r["country"]): r["n"]
-        for r in conn.execute("SELECT city, country, COUNT(DISTINCT ip_hash) as n FROM visits GROUP BY city, country")
+        (r["city"], r["region"], r["country"]): r["n"]
+        for r in conn.execute("SELECT city, region, country, COUNT(DISTINCT ip_hash) as n FROM visits GROUP BY city, region, country")
     }
     submissions_by_loc = {
-        (r["city"], r["country"]): r["n"]
-        for r in conn.execute("SELECT city, country, COUNT(*) as n FROM submissions GROUP BY city, country")
+        (r["city"], r["region"], r["country"]): r["n"]
+        for r in conn.execute("SELECT city, region, country, COUNT(*) as n FROM submissions GROUP BY city, region, country")
     }
 
     # Vue d'ensemble : volumes bruts + taux de conversion + sites les plus demandés
@@ -910,11 +928,11 @@ def stats_page():
 
     locations = [
         {
-            "city": city, "country": country,
-            "visitors": visitors_by_loc.get((city, country), 0),
-            "submissions": submissions_by_loc.get((city, country), 0),
+            "city": city, "region": region, "country": country,
+            "visitors": visitors_by_loc.get((city, region, country), 0),
+            "submissions": submissions_by_loc.get((city, region, country), 0),
         }
-        for city, country in (set(visitors_by_loc) | set(submissions_by_loc))
+        for city, region, country in (set(visitors_by_loc) | set(submissions_by_loc))
     ]
     locations.sort(key=lambda x: (x["submissions"], x["visitors"]), reverse=True)
 
