@@ -96,7 +96,7 @@ const ECO_TRANSLATIONS = {
       worldTitle: "🌍 Ailleurs dans le monde ?",
       worldHint: "L'Interac ne fonctionne pas hors Canada. Par carte de crédit ou de débit, où que tu sois, PayPal fonctionne sans compte requis.",
       paypalBtn: "❤️ Faire un don via PayPal",
-      footerHtml: "© Tous droits réservés • Automne 2025 • Projet à intérêt Écologique, incitant les lobis industriels à faire de meilleurs choix pour la préservation de notre environnement à tous. <br>\nRéalisé par JOEL SANDÉ, du Saguenay Lac Saint-Jean."
+      footerHtml: "© Tous droits réservés • Automne 2025 • Projet à intérêt Écologique, incitant les lobis industriels à faire de meilleurs choix pour la préservation de notre environnement à tous. <br>\nRéalisé par JOEL SANDÉ, du Saguenay Lac Saint-Jean. <br><br>\nJe vous le dis tout de suite : si ce projet génère suffisamment de fonds, une bonne partie ira en aide financière aux personnes en situation de handicap physique, aux jeunes filles et femmes pour les sortir de la prostitution involontaire due à leurs situations précaires, et surtout aux séniors à travers le monde, qui sont ma cause principale, car ce sont eux qui ont bâti la société dans laquelle nous sommes aujourd'hui. Maintenant qu'ils n'ont plus la force, c'est à notre tour de leur faire de petits cadeaux. Ce sont ces trois causes qui m'ont poussé à entreprendre une maîtrise en génie biomédical. Il n'y a rien de tel que de vivre et de vieillir en toute sérénité, en santé."
     }
   },
 
@@ -188,7 +188,7 @@ const ECO_TRANSLATIONS = {
       worldTitle: "🌍 Somewhere else in the world?",
       worldHint: "Interac doesn't work outside Canada. By credit or debit card, wherever you are, PayPal works with no account required.",
       paypalBtn: "❤️ Donate via PayPal",
-      footerHtml: "© All rights reserved • Fall 2025 • A project for the environment, encouraging industry lobbies to make better choices to preserve our environment for everyone. <br>\nCreated by JOEL SANDÉ, from Saguenay Lac Saint-Jean."
+      footerHtml: "© All rights reserved • Fall 2025 • A project for the environment, encouraging industry lobbies to make better choices to preserve our environment for everyone. <br>\nCreated by JOEL SANDÉ, from Saguenay Lac Saint-Jean. <br><br>\nI'll say it upfront: if this project generates enough funds, a good share of it will go toward financial support for people with physical disabilities; for young women and girls, to help them escape involuntary prostitution driven by precarious circumstances; and above all for seniors around the world — my main cause, because they are the ones who built the society we live in today. Now that they no longer have the strength, it's our turn to give a little something back. These are the three causes that pushed me to pursue a Master's degree in Biomedical Engineering. There's nothing quite like living — and growing old — in peace and in good health."
     }
   },
 

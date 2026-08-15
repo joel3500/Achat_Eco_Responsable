@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Statistiques (Admin) — Achat Éco-Responsable</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="/static/styles.css"/>
+  <style>
+    .login-box{max-width:360px;margin:80px auto 0;text-align:center}
+    .login-box input[type="password"]{
+      width:100%;padding:10px;border-radius:8px;border:1px solid #374151;
+      background:#0a0f1a;color:var(--fg);margin:10px 0;
+    }
+    .stat-section{margin:28px 0}
+    .stat-section h2{margin-bottom:10px}
+    .rank-cell{color:var(--muted);width:2.5em}
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:14px 0}
+    .kpi-tile{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:16px}
+    .kpi-tile .kpi-value{font-size:1.8rem;font-weight:800;color:var(--brand)}
+    .kpi-tile .kpi-label{color:var(--muted);font-size:.85rem;margin-top:4px}
+  </style>
+</head>
+<body>
+  <header class="barre">
+    <h1>📊 Statistiques</h1>
+  </header>
+
+  <main class="container">
+    {% if not authed %}
+      <section class="card login-box">
+        <p class="hint">Accès réservé à l'administrateur du site.</p>
+        <form method="post">
+          <input type="password" name="password" placeholder="Mot de passe admin" required autofocus>
+          <br>
+          <button class="btn primary" type="submit">Entrer</button>
+        </form>
+        {% if error %}<p class="msg error">{{ error }}</p>{% endif %}
+      </section>
+    {% else %}
+      <section class="stat-section">
+        <h2>📈 Vue d'ensemble</h2>
+        <div class="kpi-grid">
+          <div class="kpi-tile"><div class="kpi-value">{{ overview.unique_visitors }}</div><div class="kpi-label">Visiteurs uniques</div></div>
+          <div class="kpi-tile"><div class="kpi-value">{{ overview.total_pageviews }}</div><div class="kpi-label">Pages vues</div></div>
+          <div class="kpi-tile"><div class="kpi-value">{{ overview.total_submissions }}</div><div class="kpi-label">Articles analysés</div></div>
+          <div class="kpi-tile"><div class="kpi-value">{{ overview.conversion_rate }}%</div><div class="kpi-label">Taux de conversion<br>(visiteur → analyse)</div></div>
+          <div class="kpi-tile"><div class="kpi-value">{{ overview.countries_reached }}</div><div class="kpi-label">Pays rejoints</div></div>
+        </div>
+      </section>
+
+      <section class="stat-section">
+        <h2>🏷️ Types d'articles les plus demandés</h2>
+        {% if categories %}
+          <div class="table-wrap">
+            <table class="nice-table">
+              <thead>
+                <tr><th class="rank-cell">#</th><th>Catégorie</th><th>Analyses</th></tr>
+              </thead>
+              <tbody>
+                {% for c in categories %}
+                  <tr>
+                    <td class="rank-cell">{{ loop.index }}</td>
+                    <td>{{ c.label }}</td>
+                    <td>{{ c.count }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="hint">Aucune analyse enregistrée pour l'instant.</p>
+        {% endif %}
+      </section>
+
+      <section class="stat-section">
+        <h2>🛒 Sites les plus demandés</h2>
+        {% if top_domains %}
+          <div class="table-wrap">
+            <table class="nice-table">
+              <thead>
+                <tr><th class="rank-cell">#</th><th>Domaine</th><th>Analyses</th></tr>
+              </thead>
+              <tbody>
+                {% for d in top_domains %}
+                  <tr>
+                    <td class="rank-cell">{{ loop.index }}</td>
+                    <td>{{ d.domain }}</td>
+                    <td>{{ d.count }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="hint">Aucune analyse enregistrée pour l'instant.</p>
+        {% endif %}
+      </section>
+
+      <section class="stat-section">
+        <h2>🌍 Provenance géographique</h2>
+        {% if locations %}
+          <div class="table-wrap">
+            <table class="nice-table">
+              <thead>
+                <tr>
+                  <th class="rank-cell">#</th><th>Ville</th><th>Pays</th>
+                  <th>Visiteurs</th><th>Soumissions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for l in locations %}
+                  <tr>
+                    <td class="rank-cell">{{ loop.index }}</td>
+                    <td>{{ l.city }}</td>
+                    <td>{{ l.country }}</td>
+                    <td>{{ l.visitors }}</td>
+                    <td>{{ l.submissions }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="hint">Aucune visite enregistrée pour l'instant.</p>
+        {% endif %}
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>

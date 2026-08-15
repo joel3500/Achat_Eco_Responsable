@@ -1,11 +1,12 @@
-import os, re, json, math, time, base64, tempfile
+import os, re, json, math, time, base64, tempfile, sqlite3, hashlib, hmac, ipaddress
 from dataclasses import dataclass
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 import requests
 from bs4 import BeautifulSoup
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 from openai import OpenAI
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 #---------  Imports pour couvrir le SCRAPPING -------------------#
 
@@ -76,9 +77,17 @@ HEADLESS_DOMAINS = {
 GOOGLE_CSE_KEY = os.getenv("GOOGLE_CSE_KEY")
 GOOGLE_CSE_ID  = os.getenv("GOOGLE_CSE_ID")
 
+# ---- Admin / stats -------------------------------------------------------#
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+STATS_DB_PATH = os.getenv("STATS_DB_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "stats.db"))
+
 # -----------------------------------------------------------------------------#
 
 app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY") or os.urandom(24)
+# Railway (et la plupart des PaaS) mettent l'app derrière un proxy : sans ça,
+# request.remote_addr renverrait l'IP du proxy plutôt que celle du visiteur.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 
 #------------------------------------------------------------------------------#
 # 4 variantes courantes de prix (CAD/$/USD/€)
@@ -107,6 +116,99 @@ from flask_compress import Compress
 Compress(app)  # <-- ici, juste après la création de app
 
 #--------------- (Fin de stratégies de référencement) -------------------------#
+
+# ============================================
+#  MODULE : STATS / ANALYTICS (page /stats)
+# ============================================
+CATEGORY_LABELS = {
+    "vetements": "Vêtements & textile",
+    "maison_meubles": "Maison, literie & meubles",
+    "electronique": "Électronique & accessoires",
+    "electromenagers": "Électroménagers",
+    "sport_plein_air": "Sport & plein air",
+    "produits_menagers": "Produits ménagers & soins personnels",
+    "jouets": "Jouets & articles pour enfants",
+    "bagagerie": "Bagagerie & accessoires",
+    "bricolage": "Bricolage & rénovation",
+    "autre": "Autre",
+}
+
+def init_stats_db():
+    conn = sqlite3.connect(STATS_DB_PATH)
+    conn.execute("""CREATE TABLE IF NOT EXISTS visits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ip_hash TEXT, city TEXT, country TEXT, page TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS submissions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ip_hash TEXT, city TEXT, country TEXT, url TEXT, category TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )""")
+    conn.commit()
+    conn.close()
+
+init_stats_db()
+
+def _client_ip() -> str:
+    return request.remote_addr or "0.0.0.0"
+
+def _hash_ip(ip: str) -> str:
+    return hashlib.sha256(f"achat_eco_salt:{ip}".encode()).hexdigest()[:16]
+
+_geo_cache: Dict[str, tuple] = {}
+
+def geolocate_ip(ip: str) -> tuple:
+    """Retourne (ville, pays) pour une IP. Ne fait jamais planter l'appelant."""
+    if ip in _geo_cache:
+        return _geo_cache[ip]
+
+    try:
+        if ipaddress.ip_address(ip).is_private:
+            _geo_cache[ip] = ("Local", "Local")
+            return _geo_cache[ip]
+    except ValueError:
+        _geo_cache[ip] = ("Inconnu", "Inconnu")
+        return _geo_cache[ip]
+
+    result = ("Inconnu", "Inconnu")
+    try:
+        r = requests.get(f"http://ip-api.com/json/{ip}", params={"fields": "status,country,city"}, timeout=3)
+        data = r.json()
+        if data.get("status") == "success":
+            result = (data.get("city") or "Inconnu", data.get("country") or "Inconnu")
+    except Exception:
+        pass
+    _geo_cache[ip] = result
+    return result
+
+def record_visit(page: str) -> None:
+    try:
+        ip = _client_ip()
+        city, country = geolocate_ip(ip)
+        conn = sqlite3.connect(STATS_DB_PATH)
+        conn.execute(
+            "INSERT INTO visits (ip_hash, city, country, page) VALUES (?,?,?,?)",
+            (_hash_ip(ip), city, country, page)
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[stats] record_visit failed: {e}")  # ne doit jamais casser une page
+
+def record_submission(url: str, category: str) -> None:
+    try:
+        ip = _client_ip()
+        city, country = geolocate_ip(ip)
+        conn = sqlite3.connect(STATS_DB_PATH)
+        conn.execute(
+            "INSERT INTO submissions (ip_hash, city, country, url, category) VALUES (?,?,?,?,?)",
+            (_hash_ip(ip), city, country, url, category or "autre")
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[stats] record_submission failed: {e}")
 
 # ============================================
 #  MODULE : ULTIMATE IMAGE SEARCH (Lens‑like)
@@ -506,6 +608,7 @@ def build_user_prompt(doc: Dict[str, str]) -> str:
     schema = {
         "url": doc["url"],
         "title": doc["title"],
+        "category": "one of ['vetements','maison_meubles','electronique','electromenagers','sport_plein_air','produits_menagers','jouets','bagagerie','bricolage','autre'] — catégorie générale du produit",
         "features": {
             "materials": "string: matériaux mentionnés (ex: coton bio, polyester recyclé...)",
             "water_use_liters": "number|null: litres (si mentionné, sinon null)",
@@ -684,6 +787,7 @@ def gcv_web_detection(image_bytes: bytes, filename: str = "upload.jpg") -> list[
 # ------------------------------
 @app.get("/")
 def index():
+    record_visit("index")
     return render_template("index.html")
 
 
@@ -703,6 +807,8 @@ def api_analyze():
             llm = call_llm(doc)
             subs = llm.get("subscores", {}) or {}
             eco_score = compute_eco_score(subs)
+            category = llm.get("category") or "autre"
+            record_submission(doc["url"], category)
             results.append({
                 "url": doc["url"],
                 "title": llm.get("title") or doc["title"],
@@ -726,17 +832,96 @@ def api_analyze():
 # ------------------------------------------------------------------------------------------------------------------
 @app.get("/images")
 def images_page():
+    record_visit("images")
     return render_template("images.html")
 
 
 @app.get("/exemples")
 def exemples_page():
+    record_visit("exemples")
     return render_template("exemples.html")
 
 
 @app.get("/don")
 def don_page():
     return render_template("don.html")
+
+
+@app.route("/stats", methods=["GET", "POST"])
+def stats_page():
+    if request.method == "POST":
+        pwd = request.form.get("password", "")
+        if ADMIN_PASSWORD and hmac.compare_digest(pwd, ADMIN_PASSWORD):
+            session["is_admin"] = True
+        else:
+            return render_template("stats.html", authed=False, error="Mot de passe incorrect."), 401
+
+    if not session.get("is_admin"):
+        return render_template("stats.html", authed=False)
+
+    from collections import Counter
+
+    conn = sqlite3.connect(STATS_DB_PATH)
+    conn.row_factory = sqlite3.Row
+
+    cat_rows = conn.execute(
+        "SELECT category, COUNT(*) as n FROM submissions GROUP BY category ORDER BY n DESC"
+    ).fetchall()
+    categories = [
+        {"label": CATEGORY_LABELS.get(r["category"], r["category"] or "Autre"), "count": r["n"]}
+        for r in cat_rows
+    ]
+
+    visitors_by_loc = {
+        (r["city"], r["country"]): r["n"]
+        for r in conn.execute("SELECT city, country, COUNT(DISTINCT ip_hash) as n FROM visits GROUP BY city, country")
+    }
+    submissions_by_loc = {
+        (r["city"], r["country"]): r["n"]
+        for r in conn.execute("SELECT city, country, COUNT(*) as n FROM submissions GROUP BY city, country")
+    }
+
+    # Vue d'ensemble : volumes bruts + taux de conversion + sites les plus demandés
+    # (indicateurs utiles pour démontrer la traction du projet)
+    unique_visitors = conn.execute("SELECT COUNT(DISTINCT ip_hash) as n FROM visits").fetchone()["n"]
+    total_pageviews = conn.execute("SELECT COUNT(*) as n FROM visits").fetchone()["n"]
+    total_submissions = conn.execute("SELECT COUNT(*) as n FROM submissions").fetchone()["n"]
+    distinct_submitters = conn.execute("SELECT COUNT(DISTINCT ip_hash) as n FROM submissions").fetchone()["n"]
+    countries_reached = conn.execute(
+        "SELECT COUNT(DISTINCT country) as n FROM visits WHERE country NOT IN ('Local','Inconnu')"
+    ).fetchone()["n"]
+
+    submission_urls = [r["url"] for r in conn.execute("SELECT url FROM submissions")]
+    conn.close()
+
+    # % de visiteurs ayant utilisé la fonctionnalité principale au moins une fois
+    conversion_rate = round((distinct_submitters / unique_visitors * 100), 1) if unique_visitors else 0.0
+
+    domain_counts = Counter(_extract_domain(u) or "(inconnu)" for u in submission_urls)
+    top_domains = [{"domain": d, "count": c} for d, c in domain_counts.most_common(10)]
+
+    overview = {
+        "unique_visitors": unique_visitors,
+        "total_pageviews": total_pageviews,
+        "total_submissions": total_submissions,
+        "conversion_rate": conversion_rate,
+        "countries_reached": countries_reached,
+    }
+
+    locations = [
+        {
+            "city": city, "country": country,
+            "visitors": visitors_by_loc.get((city, country), 0),
+            "submissions": submissions_by_loc.get((city, country), 0),
+        }
+        for city, country in (set(visitors_by_loc) | set(submissions_by_loc))
+    ]
+    locations.sort(key=lambda x: (x["submissions"], x["visitors"]), reverse=True)
+
+    return render_template(
+        "stats.html", authed=True,
+        overview=overview, categories=categories, locations=locations, top_domains=top_domains
+    )
 
 
 @app.post("/images")

@@ -5,3 +5,4 @@ __pycache__/
 *.json
 installer_venv.txt
 gcreds_b64.txt
+stats.db
