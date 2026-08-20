@@ -175,6 +175,18 @@
             </ul>
           </div>
         </article>
+
+        <article class="example-card">
+          <img src="/static/img/exemples/vehicules.jpg" alt="Voitures électriques en recharge" loading="lazy">
+          <div class="example-body">
+            <h4>🚗 <span id="catVehicleTitle">Véhicules</span></h4>
+            <ul id="catVehicleList">
+              <li>Voiture électrique vs voiture à essence</li>
+              <li>Vélo ou vélo électrique vs voiture pour les courts trajets</li>
+              <li>Véhicule d'occasion vs véhicule neuf</li>
+            </ul>
+          </div>
+        </article>
       </div>
 
       <p class="hint" id="tipText">
@@ -247,6 +259,7 @@
       set('catToysTitle', ex.catToysTitle);
       set('catBagsTitle', ex.catBagsTitle);
       set('catDiyTitle', ex.catDiyTitle);
+      set('catVehicleTitle', ex.catVehicleTitle);
       fillList('catClothingList', ex.catClothingLi);
       fillList('catHomeList', ex.catHomeLi);
       fillList('catElecList', ex.catElecLi);
@@ -256,6 +269,7 @@
       fillList('catToysList', ex.catToysLi);
       fillList('catBagsList', ex.catBagsLi);
       fillList('catDiyList', ex.catDiyLi);
+      fillList('catVehicleList', ex.catVehicleLi);
       set('tipText', ex.tipHtml, true);
       set('h3Warning', ex.h3Warning);
       fillList('warnList', ex.warnLiHtml);

@@ -123,6 +123,7 @@ Compress(app)  # <-- ici, juste après la création de app
 CATEGORY_LABELS = {
     "vetements": "Vêtements & textile",
     "maison_meubles": "Maison, literie & meubles",
+    "vehicules": "Véhicules",
     "electronique": "Électronique & accessoires",
     "electromenagers": "Électroménagers",
     "sport_plein_air": "Sport & plein air",
@@ -626,7 +627,7 @@ def build_user_prompt(doc: Dict[str, str]) -> str:
     schema = {
         "url": doc["url"],
         "title": doc["title"],
-        "category": "one of ['vetements','maison_meubles','electronique','electromenagers','sport_plein_air','produits_menagers','jouets','bagagerie','bricolage','autre'] — catégorie générale du produit",
+        "category": "one of ['vetements','maison_meubles','electronique','electromenagers','sport_plein_air','produits_menagers','jouets','bagagerie','bricolage','vehicules','autre'] — catégorie générale du produit",
         "features": {
             "materials": "string: matériaux mentionnés (ex: coton bio, polyester recyclé...)",
             "water_use_liters": "number|null: litres (si mentionné, sinon null)",
