@@ -40,6 +40,31 @@ footer small p {text-align: justify; justify-content:space-between;}
 .site-ul a { word-break: break-all; }
 
 
+.example-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:16px;
+  margin:16px 0;
+}
+.example-card{
+  background:var(--card);
+  border:1px solid #1f2937;
+  border-radius:14px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.example-card img{
+  width:100%;
+  height:150px;
+  object-fit:cover;
+  display:block;
+}
+.example-card .example-body{ padding:14px; }
+.example-card h4{ margin:0 0 8px; }
+.example-card ul{ margin:0; padding-left:18px; }
+.example-card li{ margin:4px 0; font-size:.92rem; }
+
 .table-wrap { overflow-x: auto; }
 .nice-table { width:100%; border-collapse: collapse; }
 .nice-table th, .nice-table td { border:1px solid #1f2937; padding:8px; vertical-align: top; }
