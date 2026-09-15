@@ -52,18 +52,47 @@
                style="height:60px;width:auto;max-width:100%;
                       border-radius:10px;border:1px solid #1f2937;object-fit:contain"/>
                        Achat Eco-Responsable</h1>
-    <p class="small">
-        <small>
-          <span id="introIntro">Compare des articles et choisis le plus écologique :</span> <br>
-          <span id="introDesire">Tu désires te procurer un produit, mais tu as plusieurs choix possibles et tu hésites lequel choisir.</span>
-          <span id="introHelp">Nous t'aidons à faire un choix Eco-Responsable.</span>
-          <span id="introPaste">Tu n'as juste qu'à coller les URLs des pages de tes objets, et nous t'aidons à faire les choix Eco-Responsables :</span> <br>
-          - <span id="li1">Emprunte Carbone</span> <br>
-          - <span id="li2">Fabrication ayant consommé le moins d'eau</span> <br>
-          - <span id="li3">Celui qui contient le plus de matériel recyclable</span> <br>
-          - ... <br>
-          <span id="introRank">Nous te les classons selon l'ordre le plus respectueux de l'environnement.</span> <br>
+  </header>
 
+  <main class="container">
+    <!-- ——— Hero : la promesse en 5 secondes ——— -->
+    <section class="hero">
+      <span class="hero-badge" id="heroBadge">🌱 Analyse propulsée par l'IA</span>
+      <h2 class="hero-title">
+        <span id="heroTitle">Achète mieux.</span>
+        <span class="accent" id="heroTitleAccent">Pas plus cher, juste plus responsable.</span>
+      </h2>
+      <p class="hero-sub" id="heroSub">Colle les liens de 2 produits similaires. Notre IA compare leur impact environnemental réel — matériaux, eau, CO₂e, recyclabilité — en quelques secondes.</p>
+      <a href="#inputs" class="hero-cta" id="heroCta">Comparer mes premiers articles ↓</a>
+
+      <div class="demo-compare" aria-hidden="true">
+        <div class="demo-score low"><div class="num">42</div><div class="lbl">Écouteurs A</div></div>
+        <div class="demo-arrow">VS</div>
+        <div class="demo-score high"><div class="num">78</div><div class="lbl">Écouteurs B</div></div>
+      </div>
+      <p class="demo-caption" id="demoCaption">Exemple de résultat — le score complet inclut matériaux, eau, énergie, CO₂e et recyclabilité.</p>
+    </section>
+
+    <section class="how-it-works">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h4 id="stepOneTitle">Colle 2 liens</h4>
+        <p id="stepOneText">N'importe quel site, n'importe quel produit.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h4 id="stepTwoTitle">L'IA analyse</h4>
+        <p id="stepTwoText">Matériaux, eau, énergie, CO₂e, recyclabilité...</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h4 id="stepThreeTitle">Tu compares</h4>
+        <p id="stepThreeText">Un score clair, le meilleur choix mis en évidence.</p>
+      </div>
+    </section>
+
+    <p class="small" style="text-align:center">
+        <small>
           <a href="/images" id="linkImages">← j'ai une image dont je cherche les points de vente en ligne</a> <br>
           <a href="/exemples" id="linkExemples">← je ne sais pas quel genre d'articles je peux comparer ici (voir des exemples)</a>
         </small>
@@ -71,9 +100,7 @@
     <p class="notice" id="notice">
       💻 Ce site fonctionne beaucoup mieux sur un ordinateur ou une tablette (plus facile pour copier-coller les URLs) que sur un téléphone. L'utilisation mobile n'est pas encore optimisée, désolé pour l'inconvénient.
     </p>
-  </header>
 
-  <main class="container">
     <!-- Zone d'URL dynamiques -->
     <section>
             <h2 id="h2Compare">Articles à comparer</h2>
@@ -214,14 +241,18 @@
       currentLang = lang;
       const tr = t();
       document.title = tr.index.title;
-      document.getElementById('introIntro').textContent = tr.index.introIntro;
-      document.getElementById('introDesire').textContent = tr.index.introDesire;
-      document.getElementById('introHelp').textContent = tr.index.introHelp;
-      document.getElementById('introPaste').textContent = tr.index.introPaste;
-      document.getElementById('li1').textContent = tr.index.li1;
-      document.getElementById('li2').textContent = tr.index.li2;
-      document.getElementById('li3').textContent = tr.index.li3;
-      document.getElementById('introRank').textContent = tr.index.introRank;
+      document.getElementById('heroBadge').textContent = tr.index.heroBadge;
+      document.getElementById('heroTitle').textContent = tr.index.heroTitle;
+      document.getElementById('heroTitleAccent').textContent = tr.index.heroTitleAccent;
+      document.getElementById('heroSub').textContent = tr.index.heroSub;
+      document.getElementById('heroCta').textContent = tr.index.heroCta;
+      document.getElementById('demoCaption').textContent = tr.index.demoCaption;
+      document.getElementById('stepOneTitle').textContent = tr.index.stepOneTitle;
+      document.getElementById('stepOneText').textContent = tr.index.stepOneText;
+      document.getElementById('stepTwoTitle').textContent = tr.index.stepTwoTitle;
+      document.getElementById('stepTwoText').textContent = tr.index.stepTwoText;
+      document.getElementById('stepThreeTitle').textContent = tr.index.stepThreeTitle;
+      document.getElementById('stepThreeText').textContent = tr.index.stepThreeText;
       document.getElementById('linkImages').textContent = tr.common.linkImages;
       document.getElementById('linkExemples').textContent = tr.common.linkExemples;
       document.getElementById('notice').textContent = tr.common.notice;

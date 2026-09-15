@@ -40,6 +40,39 @@ footer small p {text-align: justify; justify-content:space-between;}
 .site-ul a { word-break: break-all; }
 
 
+.hero{ text-align:center; padding:28px 16px 20px; max-width:760px; margin:0 auto; }
+.hero-badge{
+  display:inline-block; background:#0b1220; border:1px solid var(--brand); color:var(--brand);
+  border-radius:999px; padding:.35em 1em; font-size:.82rem; font-weight:700; margin-bottom:14px;
+}
+.hero-title{ font-size:clamp(1.6rem, 4vw, 2.4rem); font-weight:800; line-height:1.25; margin:0 0 12px; }
+.hero-title .accent{ color:var(--brand); display:block; }
+.hero-sub{ color:var(--muted); font-size:1.05rem; line-height:1.6; max-width:600px; margin:0 auto 22px; }
+.hero-cta{
+  display:inline-block; background:var(--brand); color:#052e12; font-weight:800;
+  padding:.8em 1.8em; border-radius:999px; text-decoration:none; font-size:1.05rem;
+  border:none; cursor:pointer; transition:transform .15s;
+}
+.hero-cta:hover{ transform:translateY(-2px); }
+
+.demo-compare{ display:flex; align-items:center; justify-content:center; gap:14px; margin:28px auto 8px; flex-wrap:wrap; }
+.demo-score{ background:var(--card); border:1px solid #1f2937; border-radius:14px; padding:14px 18px; min-width:120px; text-align:center; }
+.demo-score .num{ font-size:1.8rem; font-weight:800; }
+.demo-score.low .num{ color:#f87171; }
+.demo-score.high .num{ color:var(--brand); }
+.demo-score .lbl{ font-size:.78rem; color:var(--muted); margin-top:2px; }
+.demo-arrow{ font-size:1.1rem; color:var(--muted); font-weight:700; }
+.demo-caption{ text-align:center; color:var(--muted); font-size:.8rem; margin:6px auto 0; max-width:520px; }
+
+.how-it-works{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; max-width:900px; margin:8px auto 24px; padding:0 16px; }
+.step{ background:var(--card); border:1px solid #1f2937; border-radius:14px; padding:16px; text-align:center; }
+.step .step-num{
+  display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px;
+  border-radius:999px; background:var(--brand); color:#052e12; font-weight:800; margin-bottom:8px;
+}
+.step h4{ margin:4px 0 6px; }
+.step p{ margin:0; color:var(--muted); font-size:.85rem; }
+
 .example-grid{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
