@@ -1,20 +1,44 @@
-import os, re, json, math, time, base64, tempfile, sqlite3, hashlib, hmac, ipaddress
+"""
+Achat Éco-Responsable — application web (Flask)
+==================================================
+Ce fichier contient TOUT le "cerveau" du site :
+  - les routes (les adresses comme / ou /images que le navigateur visite)
+  - la logique qui va chercher le contenu d'une page produit sur Internet
+  - l'appel à l'intelligence artificielle (OpenAI) pour analyser ce contenu
+  - le calcul du score écologique
+  - le petit tableau de bord de statistiques (/stats)
+
+Si tu débutes en programmation : ce fichier est volontairement commenté
+en détail. Chaque section explique POURQUOI le code existe, pas
+seulement CE QU'IL FAIT (le code lui-même montre déjà ce qu'il fait).
+"""
+
+import os          # pour lire des variables d'environnement (mots de passe, clés API...)
+import re          # "regex" = pour reconnaître des motifs de texte (ex: un prix "12,99 $")
+import json         # pour lire/écrire du JSON (le format d'échange avec l'IA et le navigateur)
+import math         # (non utilisé activement, gardé pour compatibilité future)
+import time         # (non utilisé activement, gardé pour compatibilité future)
+import base64       # pour encoder une image en texte (nécessaire pour l'envoyer à l'IA)
+import tempfile     # pour créer un fichier temporaire (le certificat Google Cloud)
+import sqlite3      # petite base de données locale utilisée par le tableau de bord /stats
+import hashlib      # pour transformer une IP en empreinte (hash) irréversible
+import hmac         # comparaison "sécurisée" de mots de passe (évite les attaques par timing)
+import ipaddress    # pour reconnaître les adresses IP privées (ex: 127.0.0.1, réseau local)
+
 from dataclasses import dataclass
 from typing import List, Dict, Any
-from dotenv import load_dotenv
-import requests
-from bs4 import BeautifulSoup
+from dotenv import load_dotenv       # charge le fichier .env (variables secrètes en local)
+import requests                       # pour faire des requêtes HTTP (aller chercher une page web)
+from bs4 import BeautifulSoup         # pour "lire" du HTML et en extraire le texte
 from flask import Flask, render_template, request, jsonify, session
 from openai import OpenAI
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-#---------  Imports pour couvrir le SCRAPPING -------------------#
+#---------  Imports pour couvrir le SCRAPPING (aller lire des pages web) -------------------#
 
-from urllib.parse import urlparse   # librairie pour utiliser le smart_fetch # Recherche visuelle (Bing Visual Search)
-from playwright.sync_api import sync_playwright
-import extruct, w3lib.html
-
-#----------------------------------------------------------------#
+from urllib.parse import urlparse   # pour découper une URL et en extraire le nom de domaine
+from playwright.sync_api import sync_playwright   # navigateur invisible (headless) pour le JS
+import extruct, w3lib.html          # pour lire les données structurées (JSON-LD) d'une page
 
 #----------------------------------------------------------------#
 # Page 2 : recherche par images
@@ -30,7 +54,9 @@ from w3lib.html import get_base_url
 from datetime import datetime
 from flask import url_for, Response
 #--------------------------------------------------------------------------------
-load_dotenv()
+
+load_dotenv()  # lit le fichier .env s'il existe et remplit os.environ avec son contenu
+
 #-------------------------------#
 # Config de base                #
 #-------------------------------#
@@ -42,14 +68,16 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 _gcreds_b64 = os.getenv("GOOGLE_CREDS_B64")
 if _gcreds_b64:
     _creds_path = os.path.join(tempfile.gettempdir(), "gcp-credentials.json")
-    with open(_creds_path, "wb") as f:
-        f.write(base64.b64decode(_gcreds_b64))
+    with open(_creds_path, "wb") as fichier_credentials:
+        fichier_credentials.write(base64.b64decode(_gcreds_b64))
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = _creds_path
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(api_key=OPENAI_API_KEY)  # le "client" est l'objet qui parle à l'API d'OpenAI
 
 # ---- Paramètre pour activer/désactiver le rendu headless ---------------#
-ALLOW_HEADLESS = os.getenv("ALLOW_HEADLESS_FETCH", "false").lower() in ("1","true","yes")
+# "headless" = un vrai navigateur Chrome qui tourne sans fenêtre visible.
+# On ne l'utilise que pour certains sites, car c'est plus lent qu'un simple téléchargement.
+ALLOW_HEADLESS = os.getenv("ALLOW_HEADLESS_FETCH", "false").lower() in ("1", "true", "yes")
 
 # Domaines sur lesquels on autorise le rendu headless (légal & utile)
 HEADLESS_DOMAINS = {
@@ -74,8 +102,8 @@ HEADLESS_DOMAINS = {
     "earthhero.com",
 }
 
-GOOGLE_CSE_KEY = os.getenv("GOOGLE_CSE_KEY")
-GOOGLE_CSE_ID  = os.getenv("GOOGLE_CSE_ID")
+GOOGLE_CSE_KEY = os.getenv("GOOGLE_CSE_KEY")   # clé de l'API "Google Custom Search"
+GOOGLE_CSE_ID  = os.getenv("GOOGLE_CSE_ID")    # identifiant du moteur de recherche configuré
 
 # ---- Admin / stats -------------------------------------------------------#
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
@@ -83,14 +111,17 @@ STATS_DB_PATH = os.getenv("STATS_DB_PATH", os.path.join(os.path.dirname(os.path.
 
 # -----------------------------------------------------------------------------#
 
-app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY") or os.urandom(24)
+app = Flask(__name__)  # crée l'application web. C'est l'objet central de Flask.
+app.secret_key = os.getenv("SECRET_KEY") or os.urandom(24)  # nécessaire pour les "sessions" (ex: rester connecté à /stats)
 # Railway (et la plupart des PaaS) mettent l'app derrière un proxy : sans ça,
 # request.remote_addr renverrait l'IP du proxy plutôt que celle du visiteur.
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 
 #------------------------------------------------------------------------------#
 # 4 variantes courantes de prix (CAD/$/USD/€)
+# Une "regex" (expression régulière) est un motif qui décrit à quoi doit
+# ressembler un bout de texte. Ici, chaque motif reconnaît un prix écrit
+# de façon un peu différente (avant ou après le symbole de devise, etc.)
 PRICE_REGEXES = [
     re.compile(r'(?:(?P<cur>\$|CAD|C\$)\s?(?P<val>\d{1,3}(?:[ ,]\d{3})*(?:[.,]\d{2})?))', re.I),
     re.compile(r'(?:(?P<val>\d{1,3}(?:[ ,]\d{3})*(?:[.,]\d{2})?)\s?(?P<cur>CAD|\$|C\$))', re.I),
@@ -98,13 +129,16 @@ PRICE_REGEXES = [
     re.compile(r'(?:(?P<cur>USD)\s?(?P<val>\d{1,3}(?:[ ,]\d{3})*(?:[.]\d{2})?))', re.I),
 ]
 
+# On s'identifie comme un vrai navigateur pour éviter que certains sites
+# bloquent nos requêtes automatiquement (beaucoup de sites refusent les
+# visiteurs qui n'ont pas de "User-Agent" reconnu).
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 }
 
 #------------------------------------------------------------------------------#
-# (facultatif) quelques réglages ( une Stratégie de référencements ) 
+# (facultatif) quelques réglages ( une Stratégie de référencements )
 #------------------------------------------------------------------------------#
 app.config.update({
     "COMPRESS_ALGORITHM": "gzip",   # ou "brotli" si tu ajoutes 'brotli'
@@ -113,14 +147,17 @@ app.config.update({
 })
 
 from flask_compress import Compress
-Compress(app)  # <-- ici, juste après la création de app
+Compress(app)  # compresse automatiquement les réponses HTML/JSON pour un site plus rapide
 
 #--------------- (Fin de stratégies de référencement) -------------------------#
 
 # ============================================
 #  MODULE : STATS / ANALYTICS (page /stats)
 # ============================================
-CATEGORY_LABELS = {
+# Ce petit module enregistre, de façon anonyme, qui visite le site et quels
+# types d'articles sont analysés. Ça sert à savoir ce qui intéresse vraiment
+# les visiteurs (utile pour prioriser les prochaines améliorations).
+LIBELLES_CATEGORIES = {
     "vetements": "Vêtements & textile",
     "maison_meubles": "Maison, literie & meubles",
     "vehicules": "Véhicules",
@@ -134,37 +171,50 @@ CATEGORY_LABELS = {
     "autre": "Autre",
 }
 
-def init_stats_db():
-    conn = sqlite3.connect(STATS_DB_PATH)
-    conn.execute("""CREATE TABLE IF NOT EXISTS visits (
+
+def initialiser_base_de_donnees_stats():
+    """Crée les tables SQLite si elles n'existent pas encore (ne fait rien si elles existent déjà)."""
+    connexion = sqlite3.connect(STATS_DB_PATH)
+    connexion.execute("""CREATE TABLE IF NOT EXISTS visits (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ip_hash TEXT, city TEXT, region TEXT, country TEXT, page TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS submissions (
+    connexion.execute("""CREATE TABLE IF NOT EXISTS submissions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ip_hash TEXT, city TEXT, region TEXT, country TEXT, url TEXT, category TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )""")
     # Migration douce : ajoute la colonne 'region' si la DB existait déjà sans elle.
-    for table in ("visits", "submissions"):
-        cols = [r[1] for r in conn.execute(f"PRAGMA table_info({table})")]
-        if "region" not in cols:
-            conn.execute(f"ALTER TABLE {table} ADD COLUMN region TEXT")
-    conn.commit()
-    conn.close()
+    for nom_table in ("visits", "submissions"):
+        colonnes_existantes = [ligne[1] for ligne in connexion.execute(f"PRAGMA table_info({nom_table})")]
+        if "region" not in colonnes_existantes:
+            connexion.execute(f"ALTER TABLE {nom_table} ADD COLUMN region TEXT")
+    connexion.commit()
+    connexion.close()
 
-init_stats_db()
 
-def _client_ip() -> str:
+initialiser_base_de_donnees_stats()
+
+
+def obtenir_ip_du_visiteur() -> str:
+    """Renvoie l'adresse IP de la personne qui a fait la requête actuelle."""
     return request.remote_addr or "0.0.0.0"
 
-def _hash_ip(ip: str) -> str:
+
+def transformer_ip_en_empreinte(ip: str) -> str:
+    """
+    Transforme une IP en une empreinte (hash) qu'on ne peut pas retransformer
+    en IP d'origine. On garde ainsi une notion de "visiteur unique" sans
+    jamais stocker sa vraie adresse IP en clair dans la base de données.
+    """
     return hashlib.sha256(f"achat_eco_salt:{ip}".encode()).hexdigest()[:16]
 
-_geo_cache: Dict[str, tuple] = {}
 
-def geolocate_ip(ip: str) -> tuple:
+_cache_geolocalisation: Dict[str, tuple] = {}  # évite de refaire le même appel réseau deux fois
+
+
+def geolocaliser_ip(ip: str) -> tuple:
     """Retourne (ville, région, pays) pour une IP. Ne fait jamais planter l'appelant.
 
     La ville est une estimation "meilleur effort" : pour certains FAI régionaux
@@ -172,118 +222,130 @@ def geolocate_ip(ip: str) -> tuple:
     administrativement dans une autre ville (souvent Montréal) même si l'abonné
     est ailleurs. La région (province/état) est nettement plus fiable.
     """
-    if ip in _geo_cache:
-        return _geo_cache[ip]
+    if ip in _cache_geolocalisation:
+        return _cache_geolocalisation[ip]
 
     try:
         if ipaddress.ip_address(ip).is_private:
-            _geo_cache[ip] = ("Local", "Local", "Local")
-            return _geo_cache[ip]
+            _cache_geolocalisation[ip] = ("Local", "Local", "Local")
+            return _cache_geolocalisation[ip]
     except ValueError:
-        _geo_cache[ip] = ("Inconnu", "Inconnu", "Inconnu")
-        return _geo_cache[ip]
+        _cache_geolocalisation[ip] = ("Inconnu", "Inconnu", "Inconnu")
+        return _cache_geolocalisation[ip]
 
-    result = ("Inconnu", "Inconnu", "Inconnu")
+    resultat = ("Inconnu", "Inconnu", "Inconnu")
     try:
-        r = requests.get(
+        reponse_geo = requests.get(
             f"http://ip-api.com/json/{ip}",
             params={"fields": "status,country,regionName,city"}, timeout=3
         )
-        data = r.json()
-        if data.get("status") == "success":
-            result = (
-                data.get("city") or "Inconnu",
-                data.get("regionName") or "Inconnu",
-                data.get("country") or "Inconnu",
+        donnees_geo = reponse_geo.json()
+        if donnees_geo.get("status") == "success":
+            resultat = (
+                donnees_geo.get("city") or "Inconnu",
+                donnees_geo.get("regionName") or "Inconnu",
+                donnees_geo.get("country") or "Inconnu",
             )
     except Exception:
-        pass
-    _geo_cache[ip] = result
-    return result
+        pass  # si le service de géolocalisation est indisponible, on garde "Inconnu"
+    _cache_geolocalisation[ip] = resultat
+    return resultat
 
-def record_visit(page: str) -> None:
+
+def enregistrer_visite(nom_page: str) -> None:
+    """Ajoute une ligne dans la table 'visits' à chaque chargement d'une page suivie."""
     try:
-        ip = _client_ip()
-        city, region, country = geolocate_ip(ip)
-        conn = sqlite3.connect(STATS_DB_PATH)
-        conn.execute(
+        ip = obtenir_ip_du_visiteur()
+        ville, region, pays = geolocaliser_ip(ip)
+        connexion = sqlite3.connect(STATS_DB_PATH)
+        connexion.execute(
             "INSERT INTO visits (ip_hash, city, region, country, page) VALUES (?,?,?,?,?)",
-            (_hash_ip(ip), city, region, country, page)
+            (transformer_ip_en_empreinte(ip), ville, region, pays, nom_page)
         )
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"[stats] record_visit failed: {e}")  # ne doit jamais casser une page
+        connexion.commit()
+        connexion.close()
+    except Exception as erreur:
+        print(f"[stats] enregistrer_visite a échoué : {erreur}")  # ne doit jamais casser une page
 
-def record_submission(url: str, category: str) -> None:
+
+def enregistrer_soumission(url: str, categorie: str) -> None:
+    """Ajoute une ligne dans la table 'submissions' à chaque analyse d'article lancée."""
     try:
-        ip = _client_ip()
-        city, region, country = geolocate_ip(ip)
-        conn = sqlite3.connect(STATS_DB_PATH)
-        conn.execute(
+        ip = obtenir_ip_du_visiteur()
+        ville, region, pays = geolocaliser_ip(ip)
+        connexion = sqlite3.connect(STATS_DB_PATH)
+        connexion.execute(
             "INSERT INTO submissions (ip_hash, city, region, country, url, category) VALUES (?,?,?,?,?,?)",
-            (_hash_ip(ip), city, region, country, url, category or "autre")
+            (transformer_ip_en_empreinte(ip), ville, region, pays, url, categorie or "autre")
         )
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"[stats] record_submission failed: {e}")
+        connexion.commit()
+        connexion.close()
+    except Exception as erreur:
+        print(f"[stats] enregistrer_soumission a échoué : {erreur}")
+
 
 # ============================================
-#  MODULE : ULTIMATE IMAGE SEARCH (Lens‑like)
+#  MODULE : RECHERCHE PAR IMAGE (façon Google Lens)
 # ============================================
 
-def _detect_mime(image_bytes: bytes) -> str:
-    if image_bytes[:3] == b'\xff\xd8\xff':
+def deviner_type_image(donnees_image: bytes) -> str:
+    """
+    Regarde les tout premiers octets du fichier (sa "signature") pour deviner
+    son format (jpeg/png/gif/webp), sans avoir besoin de connaître son nom.
+    """
+    if donnees_image[:3] == b'\xff\xd8\xff':
         return "image/jpeg"
-    if image_bytes[:8] == b'\x89PNG\r\n\x1a\n':
+    if donnees_image[:8] == b'\x89PNG\r\n\x1a\n':
         return "image/png"
-    if image_bytes[:6] in (b'GIF87a', b'GIF89a'):
+    if donnees_image[:6] in (b'GIF87a', b'GIF89a'):
         return "image/gif"
-    if image_bytes[:4] == b'RIFF' and image_bytes[8:12] == b'WEBP':
+    if donnees_image[:4] == b'RIFF' and donnees_image[8:12] == b'WEBP':
         return "image/webp"
     return "image/jpeg"
 
-def gcv_extract_info(image_bytes):
+
+def analyser_image_avec_google_vision(donnees_image):
+    """Utilise Google Cloud Vision pour trouver des mots-clés (entités) liés à l'image."""
     try:
         from google.cloud import vision
-        client = vision.ImageAnnotatorClient()
-        resp = client.web_detection(image=vision.Image(content=image_bytes))
-        web = resp.web_detection
+        client_vision = vision.ImageAnnotatorClient()
+        reponse = client_vision.web_detection(image=vision.Image(content=donnees_image))
+        detection_web = reponse.web_detection
     except Exception:
         return {"entities": [], "pages": []}
 
-    out = {
+    resultats = {
         "entities": [],
         "pages": [],
         "full_images": [],
         "partial_images": [],
     }
 
-    if not web:
-        return out
+    if not detection_web:
+        return resultats
 
-    if web.web_entities:
-        out["entities"] = [e.description for e in web.web_entities if e.description]
+    if detection_web.web_entities:
+        resultats["entities"] = [entite.description for entite in detection_web.web_entities if entite.description]
 
-    if web.pages_with_matching_images:
-        out["pages"] = [p.url for p in web.pages_with_matching_images if p.url]
+    if detection_web.pages_with_matching_images:
+        resultats["pages"] = [page.url for page in detection_web.pages_with_matching_images if page.url]
 
-    if web.full_matching_images:
-        out["full_images"] = [i.url for i in web.full_matching_images if i.url]
+    if detection_web.full_matching_images:
+        resultats["full_images"] = [image.url for image in detection_web.full_matching_images if image.url]
 
-    if web.partial_matching_images:
-        out["partial_images"] = [i.url for i in web.partial_matching_images if i.url]
+    if detection_web.partial_matching_images:
+        resultats["partial_images"] = [image.url for image in detection_web.partial_matching_images if image.url]
 
-    return out
+    return resultats
 
 
-def describe_image_with_llm(image_bytes):
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+def decrire_image_avec_ia(donnees_image):
+    """Demande au modèle de langage (GPT) de décrire en une phrase le produit visible sur l'image."""
+    client_openai_local = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     try:
-        mime = _detect_mime(image_bytes)
-        b64 = base64.b64encode(image_bytes).decode("utf-8")
-        resp = client.chat.completions.create(
+        type_mime = deviner_type_image(donnees_image)
+        image_en_base64 = base64.b64encode(donnees_image).decode("utf-8")
+        reponse = client_openai_local.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "Décris précisément le produit visible sur l’image."},
@@ -292,327 +354,369 @@ def describe_image_with_llm(image_bytes):
                     "content": [
                         {
                             "type": "image_url",
-                            "image_url": {"url": f"data:{mime};base64,{b64}"}
+                            "image_url": {"url": f"data:{type_mime};base64,{image_en_base64}"}
                         },
                         {"type": "text", "text": "En une phrase courte : marque, type, couleur, modèle si possible."}
                     ]
                 }
             ]
         )
-        return resp.choices[0].message.content.strip()
+        return reponse.choices[0].message.content.strip()
     except Exception:
         return ""
 
 
-def google_text_search(query):
+def rechercher_texte_sur_google(requete_texte):
+    """Utilise l'API Google Custom Search pour trouver des pages correspondant à une description texte."""
     if not GOOGLE_CSE_KEY or not GOOGLE_CSE_ID:
         return []
 
-    params = {
-        "q": query,
+    parametres_requete = {
+        "q": requete_texte,
         "key": GOOGLE_CSE_KEY,
         "cx": GOOGLE_CSE_ID,
         "searchType": "image",
         "num": 10,
     }
     try:
-        r = requests.get("https://www.googleapis.com/customsearch/v1", params=params, timeout=20)
-        r.raise_for_status()
+        reponse = requests.get("https://www.googleapis.com/customsearch/v1", params=parametres_requete, timeout=20)
+        reponse.raise_for_status()
     except Exception:
         return []
 
-    out = []
-    for item in r.json().get("items", []):
-        page = item.get("image", {}).get("contextLink") or item.get("link")
-        if not page:
+    resultats = []
+    for resultat_brut in reponse.json().get("items", []):
+        page_source = resultat_brut.get("image", {}).get("contextLink") or resultat_brut.get("link")
+        if not page_source:
             continue
         try:
-            site = urlparse(page).netloc
+            nom_site = urlparse(page_source).netloc
         except Exception:
-            site = None
-        out.append({
-            "thumb": item.get("link"),
-            "url": page,
-            "site": site,
+            nom_site = None
+        resultats.append({
+            "thumb": resultat_brut.get("link"),
+            "url": page_source,
+            "site": nom_site,
             "price": None,
         })
-    return out
+    return resultats
 
 
-def merge_results(*lists):
-    merged, seen = [], set()
-    for lst in lists:
-        if not lst:
+def fusionner_resultats(*listes_resultats):
+    """Combine plusieurs listes de résultats en une seule, en retirant les doublons (même URL)."""
+    resultats_fusionnes, urls_deja_vues = [], set()
+    for liste in listes_resultats:
+        if not liste:
             continue
-        for item in lst:
-            u = item.get("url")
-            if not u or u in seen:
+        for article in liste:
+            url_article = article.get("url")
+            if not url_article or url_article in urls_deja_vues:
                 continue
-            seen.add(u)
-            merged.append(item)
-    return merged
+            urls_deja_vues.add(url_article)
+            resultats_fusionnes.append(article)
+    return resultats_fusionnes
 
 
-def enrich_prices(items, max_n=10):
-    for it in items[:max_n]:
-        price = try_extract_price(it["url"])
-        if price:
-            it["price"] = price
-    return items
+def enrichir_avec_les_prix(articles, nombre_max=10):
+    """Essaie de trouver le prix affiché sur chacune des premières pages trouvées."""
+    for article in articles[:nombre_max]:
+        prix = try_extract_price(article["url"])
+        if prix:
+            article["price"] = prix
+    return articles
 
 
-def ultimate_search(image_bytes):
-    # 1) Google Vision → entités textuelles
-    gcv = gcv_extract_info(image_bytes)
+def recherche_image_complete(donnees_image):
+    """
+    Orchestre toute la recherche par image, étape par étape :
+      1) on demande à Google Vision quels mots-clés il reconnaît sur l'image
+      2) on demande en plus à l'IA de décrire le produit en une phrase
+      3) on cherche les pages qui contiennent visuellement la même image
+      4) on cherche en complément via une recherche texte classique
+      5) on fusionne le tout et on tente de récupérer le prix
+    """
+    # 1) Google Vision → mots-clés (entités) reconnus sur l'image
+    infos_vision = analyser_image_avec_google_vision(donnees_image)
 
-    # 2) LLM → description lisible pour la recherche texte
-    query = describe_image_with_llm(image_bytes)
-    if not query and gcv.get("entities"):
-        query = " ".join(gcv["entities"][:5])
+    # 2) IA → description lisible, utilisée ensuite comme requête de recherche
+    requete_texte = decrire_image_avec_ia(donnees_image)
+    if not requete_texte and infos_vision.get("entities"):
+        requete_texte = " ".join(infos_vision["entities"][:5])
 
-    # 3a) Google Cloud Vision Web Detection (image → pages visuellement similaires)
-    visual_items = gcv_web_detection(image_bytes)
+    # 3) Google Cloud Vision Web Detection (image → pages visuellement similaires)
+    resultats_visuels = gcv_web_detection(donnees_image)
 
-    # 3b) Google Custom Search (description → résultats complémentaires)
-    text_items = google_text_search(query) if query else []
+    # 4) Google Custom Search (description → résultats complémentaires)
+    resultats_texte = rechercher_texte_sur_google(requete_texte) if requete_texte else []
 
-    # 4) Fusion (visual en priorité, texte en complément)
-    merged = merge_results(visual_items, text_items)
+    # 5) Fusion (les résultats visuels passent en premier, le texte complète)
+    resultats_combines = fusionner_resultats(resultats_visuels, resultats_texte)
 
-    # 5) Enrichissement prix
-    merged = enrich_prices(merged)
+    # 6) Enrichissement des prix
+    resultats_combines = enrichir_avec_les_prix(resultats_combines)
 
     return {
-        "description": query,
-        "entities": gcv["entities"],
-        "items": merged[:20]
+        "description": requete_texte,
+        "entities": infos_vision["entities"],
+        "items": resultats_combines[:20]
     }
 
-#================= ( FIN DE RESCHERCHE de Correspondance )  ===========================#
+#================= ( FIN DE RECHERCHE de Correspondance )  ===========================#
 
-def _extract_price_from_jsonld(data):
-    """Explore JSON-LD/Microdata pour Offer/AggregateOffer."""
-    def norm(v):
-        if isinstance(v, (int, float)): return f"{v}"
-        if isinstance(v, str): return v.strip()
+
+def _extraire_prix_depuis_jsonld(objet_json):
+    """Explore récursivement un bloc JSON-LD/Microdata à la recherche d'une 'Offer' (offre de prix)."""
+
+    def nettoyer_valeur(valeur):
+        if isinstance(valeur, (int, float)):
+            return f"{valeur}"
+        if isinstance(valeur, str):
+            return valeur.strip()
         return None
 
-    def scan(obj):
-        if isinstance(obj, dict):
-            t = norm(obj.get("@type")) or norm(obj.get("type"))
-            if t and t.lower() in {"offer", "aggregateoffer"}:
-                price = norm(obj.get("price") or obj.get("lowPrice") or obj.get("highPrice"))
-                cur   = norm(obj.get("priceCurrency"))
-                if price:
-                    return f"{price} {cur}".strip()
-            for v in obj.values():
-                out = scan(v)
-                if out: return out
-        elif isinstance(obj, list):
-            for v in obj:
-                out = scan(v)
-                if out: return out
+    def chercher_offre(objet):
+        if isinstance(objet, dict):
+            type_objet = nettoyer_valeur(objet.get("@type")) or nettoyer_valeur(objet.get("type"))
+            if type_objet and type_objet.lower() in {"offer", "aggregateoffer"}:
+                prix = nettoyer_valeur(objet.get("price") or objet.get("lowPrice") or objet.get("highPrice"))
+                devise = nettoyer_valeur(objet.get("priceCurrency"))
+                if prix:
+                    return f"{prix} {devise}".strip()
+            for valeur in objet.values():
+                trouve = chercher_offre(valeur)
+                if trouve:
+                    return trouve
+        elif isinstance(objet, list):
+            for element in objet:
+                trouve = chercher_offre(element)
+                if trouve:
+                    return trouve
         return None
 
-    return scan(data)
+    return chercher_offre(objet_json)
+
 
 def try_extract_price(url: str, timeout: float = 6.0) -> str | None:
-    """Retourne une chaîne de prix si trouvée, sinon None (rapide & robuste)."""
+    """Retourne une chaîne de prix si trouvée sur la page, sinon None (rapide & robuste)."""
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=timeout)
-        if resp.status_code >= 400 or not resp.headers.get("content-type", "").startswith("text/html"):
+        reponse = requests.get(url, headers=HEADERS, timeout=timeout)
+        if reponse.status_code >= 400 or not reponse.headers.get("content-type", "").startswith("text/html"):
             return None
 
-        html_text = resp.text
-        base_url = get_base_url(html_text, resp.url)
+        texte_html = reponse.text
+        url_de_base = get_base_url(texte_html, reponse.url)
 
-        # 1) Métadonnées structurées (JSON-LD, microdata, RDFa)
-        data = extruct.extract(html_text, base_url=base_url, syntaxes=["json-ld", "microdata", "opengraph", "rdfa"])
+        # 1) Métadonnées structurées (JSON-LD, microdata, RDFa) — la façon la plus fiable
+        donnees_structurees = extruct.extract(texte_html, base_url=url_de_base, syntaxes=["json-ld", "microdata", "opengraph", "rdfa"])
         # JSON-LD en priorité
-        for block in (data.get("json-ld") or []):
-            price = _extract_price_from_jsonld(block)
-            if price: return price
-        # Microdata/RDFa (fallback)
-        for block in (data.get("microdata") or []) + (data.get("rdfa") or []):
-            price = _extract_price_from_jsonld(block)
-            if price: return price
+        for bloc in (donnees_structurees.get("json-ld") or []):
+            prix = _extraire_prix_depuis_jsonld(bloc)
+            if prix:
+                return prix
+        # Microdata/RDFa (solution de repli)
+        for bloc in (donnees_structurees.get("microdata") or []) + (donnees_structurees.get("rdfa") or []):
+            prix = _extraire_prix_depuis_jsonld(bloc)
+            if prix:
+                return prix
 
         # 2) OpenGraph (parfois og:price:amount / og:price:currency)
-        og = { (p.get("property") or p.get("name") or "").lower(): p.get("content") 
-               for p in (data.get("opengraph") or []) if isinstance(p, dict) }
-        if og.get("og:price:amount"):
-            amount = og.get("og:price:amount")
-            currency = og.get("og:price:currency") or ""
-            return f"{amount} {currency}".strip() if amount else None
+        balises_opengraph = {
+            (balise.get("property") or balise.get("name") or "").lower(): balise.get("content")
+            for balise in (donnees_structurees.get("opengraph") or []) if isinstance(balise, dict)
+        }
+        if balises_opengraph.get("og:price:amount"):
+            montant = balises_opengraph.get("og:price:amount")
+            devise = balises_opengraph.get("og:price:currency") or ""
+            return f"{montant} {devise}".strip() if montant else None
 
-        # 3) Regex sur le texte
-        for RX in PRICE_REGEXES:
-            m = RX.search(html.unescape(html_text))
-            if m:
-                g = m.groupdict()
-                val = (g.get("val") or "").strip()
-                cur = (g.get("cur") or "").strip()
-                if val:
-                    return f"{val} {cur}".strip()
+        # 3) Dernier recours : on cherche un prix directement dans le texte avec nos regex
+        for motif_regex in PRICE_REGEXES:
+            trouve = motif_regex.search(html.unescape(texte_html))
+            if trouve:
+                groupes = trouve.groupdict()
+                valeur = (groupes.get("val") or "").strip()
+                devise = (groupes.get("cur") or "").strip()
+                if valeur:
+                    return f"{valeur} {devise}".strip()
     except Exception:
         return None
-    
+
 # ------------------------------------------------------------#
 # Outils: téléchargement & nettoyage                          #
 # ------------------------------------------------------------#
 def fetch_article_text(url: str, timeout: int = 20) -> Dict[str, str]:
     """
-    Récupère HTML puis texte brut lisible d’une page.
+    Récupère le HTML d'une page puis en extrait le texte brut lisible
+    (sans les balises, scripts, styles, etc.).
     Retourne {"url": url, "title": "...", "text": "..."}.
     """
-    headers = {
+    entetes_requete = {
         "User-Agent": "Mozilla/5.0 (compatible; AchatResponsableBot/1.0; +https://example.local)"
     }
-    r = requests.get(url, headers=headers, timeout=timeout)
-    r.raise_for_status()
-    html = r.text
+    reponse = requests.get(url, headers=entetes_requete, timeout=timeout)
+    reponse.raise_for_status()
+    code_html = reponse.text
 
-    soup = BeautifulSoup(html, "html.parser")
-    # titre
-    title = (soup.title.string.strip() if soup.title and soup.title.string else url)
-    # supprime scripts/styles/nav/footer
-    for tag in soup(["script", "style", "noscript"]):
-        tag.decompose()
-    text = soup.get_text("\n")
-    # nettoie
-    text = re.sub(r"\n{2,}", "\n", text)
-    text = re.sub(r"[ \t]{2,}", " ", text).strip()
+    soupe_html = BeautifulSoup(code_html, "html.parser")
+    # titre de la page
+    titre = (soupe_html.title.string.strip() if soupe_html.title and soupe_html.title.string else url)
+    # on supprime scripts/styles (ils ne contiennent pas de texte utile pour l'analyse)
+    for balise in soupe_html(["script", "style", "noscript"]):
+        balise.decompose()
+    texte = soupe_html.get_text("\n")
+    # on nettoie les espaces et sauts de ligne en trop
+    texte = re.sub(r"\n{2,}", "\n", texte)
+    texte = re.sub(r"[ \t]{2,}", " ", texte).strip()
 
-    # limite (évite des prompts énormes)
-    if len(text) > 15000:
-        text = text[:15000]
+    # on limite la taille (évite d'envoyer un texte énorme à l'IA, ce qui coûterait cher et serait lent)
+    if len(texte) > 15000:
+        texte = texte[:15000]
 
-    return {"url": url, "title": title, "text": text}
+    return {"url": url, "title": titre, "text": texte}
 
 # ------------------------------------------------------------#
-# Helpers d’extraction (à coller sous fetch_article_text)     #
+# Helpers d'extraction (à coller sous fetch_article_text)     #
 # ------------------------------------------------------------#
-def extract_text_from_html(html: str) -> tuple[str, str]:
-    """Titre + texte lisible à partir d'un HTML déjà rendu."""
-    soup = BeautifulSoup(html, "html.parser")
-    title = soup.title.string.strip() if soup.title and soup.title.string else ""
-    for tag in soup(["script", "style", "noscript"]):
-        tag.decompose()
-    text = soup.get_text("\n")
-    text = re.sub(r"\n{2,}", "\n", text)
-    text = re.sub(r"[ \t]{2,}", " ", text).strip()
-    if len(text) > 15000:
-        text = text[:15000]
-    return title, text
+def extract_text_from_html(code_html: str) -> tuple[str, str]:
+    """Titre + texte lisible à partir d'un HTML déjà téléchargé (ou déjà rendu par un navigateur)."""
+    soupe_html = BeautifulSoup(code_html, "html.parser")
+    titre = soupe_html.title.string.strip() if soupe_html.title and soupe_html.title.string else ""
+    for balise in soupe_html(["script", "style", "noscript"]):
+        balise.decompose()
+    texte = soupe_html.get_text("\n")
+    texte = re.sub(r"\n{2,}", "\n", texte)
+    texte = re.sub(r"[ \t]{2,}", " ", texte).strip()
+    if len(texte) > 15000:
+        texte = texte[:15000]
+    return titre, texte
 
 
-def parse_jsonld_product(html: str, url: str) -> dict | None:
-    """Essaie d'extraire un bloc Product depuis JSON-LD (schema.org/Product)."""
+def parse_jsonld_product(code_html: str, url: str) -> dict | None:
+    """Essaie d'extraire un bloc 'Product' depuis le JSON-LD (schema.org/Product) d'une page."""
     try:
-        data = extruct.extract(html, base_url=url, syntaxes=["json-ld"])
-        blocks = data.get("json-ld", []) or []
-        product = None
-        for item in blocks:
-            if isinstance(item, dict):
-                types = item.get("@type")
-                if isinstance(types, str):
-                    types = [types]
-                if types and "Product" in [t if isinstance(t, str) else "" for t in types]:
-                    product = item
+        donnees_json_ld = extruct.extract(code_html, base_url=url, syntaxes=["json-ld"])
+        blocs = donnees_json_ld.get("json-ld", []) or []
+        produit_trouve = None
+        for bloc in blocs:
+            if isinstance(bloc, dict):
+                types_declares = bloc.get("@type")
+                if isinstance(types_declares, str):
+                    types_declares = [types_declares]
+                if types_declares and "Product" in [t if isinstance(t, str) else "" for t in types_declares]:
+                    produit_trouve = bloc
                     break
-        if not product:
+        if not produit_trouve:
             return None
 
-        # Construit un petit texte utile pour le LLM
-        parts = []
-        name = product.get("name")
-        brand = product.get("brand")
-        material = product.get("material")
-        color = product.get("color")
-        description = product.get("description")
-        gtin = product.get("gtin13") or product.get("gtin12") or product.get("gtin")
+        # Construit un petit texte utile pour l'IA à partir des champs trouvés
+        lignes_texte = []
+        nom = produit_trouve.get("name")
+        marque = produit_trouve.get("brand")
+        materiau = produit_trouve.get("material")
+        couleur = produit_trouve.get("color")
+        description = produit_trouve.get("description")
+        code_gtin = produit_trouve.get("gtin13") or produit_trouve.get("gtin12") or produit_trouve.get("gtin")
 
-        if name: parts.append(f"Nom: {name}")
-        if brand:
-            if isinstance(brand, dict): brand = brand.get("name", "")
-            if brand: parts.append(f"Marque: {brand}")
-        if material: parts.append(f"Matériaux: {material}")
-        if color: parts.append(f"Couleur: {color}")
-        if gtin: parts.append(f"GTIN: {gtin}")
-        if description: parts.append(f"Description: {description}")
+        if nom:
+            lignes_texte.append(f"Nom: {nom}")
+        if marque:
+            if isinstance(marque, dict):
+                marque = marque.get("name", "")
+            if marque:
+                lignes_texte.append(f"Marque: {marque}")
+        if materiau:
+            lignes_texte.append(f"Matériaux: {materiau}")
+        if couleur:
+            lignes_texte.append(f"Couleur: {couleur}")
+        if code_gtin:
+            lignes_texte.append(f"GTIN: {code_gtin}")
+        if description:
+            lignes_texte.append(f"Description: {description}")
 
-        offers = product.get("offers")
-        def offer_line(off):
-            price = (off or {}).get("price")
-            currency = (off or {}).get("priceCurrency")
-            return f"Prix: {price} {currency or ''}".strip() if price else None
+        offres = produit_trouve.get("offers")
 
-        if isinstance(offers, dict):
-            line = offer_line(offers)
-            if line: parts.append(line)
-        elif isinstance(offers, list) and offers:
-            line = offer_line(offers[0])
-            if line: parts.append(line)
+        def ligne_prix(offre):
+            prix = (offre or {}).get("price")
+            devise = (offre or {}).get("priceCurrency")
+            return f"Prix: {prix} {devise or ''}".strip() if prix else None
 
-        text = "\n".join(parts)
-        return {"title": name or "", "text": text}
+        if isinstance(offres, dict):
+            ligne = ligne_prix(offres)
+            if ligne:
+                lignes_texte.append(ligne)
+        elif isinstance(offres, list) and offres:
+            ligne = ligne_prix(offres[0])
+            if ligne:
+                lignes_texte.append(ligne)
+
+        texte_final = "\n".join(lignes_texte)
+        return {"title": nom or "", "text": texte_final}
     except Exception:
         return None
 
 
 def fetch_rendered(url: str, timeout_ms: int = 35000) -> dict:
     """
-    Charge la page via un navigateur headless (JS exécuté),
-    tente d'utiliser JSON-LD Product, puis complète avec le texte de la page.
+    Charge la page via un navigateur invisible (headless) qui exécute le JavaScript
+    — nécessaire pour les sites qui affichent leur contenu dynamiquement.
+    Tente d'abord d'utiliser le JSON-LD 'Product', puis complète avec le texte de la page.
     """
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context(
+    with sync_playwright() as playwright:
+        navigateur = playwright.chromium.launch(headless=True)
+        contexte_navigateur = navigateur.new_context(
             user_agent=("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                         "AppleWebKit/537.36 (KHTML, like Gecko) "
                         "Chrome/120.0.0.0 Safari/537.36")
         )
-        page = context.new_page()
-        page.goto(url, timeout=timeout_ms, wait_until="networkidle")
-        html = page.content()
-        title_rendered = page.title()
-        context.close()
-        browser.close()
+        page_navigateur = contexte_navigateur.new_page()
+        page_navigateur.goto(url, timeout=timeout_ms, wait_until="networkidle")
+        code_html = page_navigateur.content()
+        titre_rendu = page_navigateur.title()
+        contexte_navigateur.close()
+        navigateur.close()
 
-    # 1) JSON-LD si possible
-    jl = parse_jsonld_product(html, url)
-    jl_title = jl.get("title") if jl else ""
-    jl_text = jl.get("text") if jl else ""
+    # 1) JSON-LD si possible (c'est la source la plus fiable)
+    bloc_produit = parse_jsonld_product(code_html, url)
+    titre_json_ld = bloc_produit.get("title") if bloc_produit else ""
+    texte_json_ld = bloc_produit.get("text") if bloc_produit else ""
 
-    # 2) Texte brut de secours
-    bs_title, bs_text = extract_text_from_html(html)
+    # 2) Texte brut de secours (au cas où le JSON-LD serait absent ou incomplet)
+    titre_texte_brut, texte_brut = extract_text_from_html(code_html)
 
-    final_title = jl_title or title_rendered or bs_title or url
-    combined_text = "\n\n".join([part for part in [jl_text, bs_text] if part]).strip()
-    if len(combined_text) > 15000:
-        combined_text = combined_text[:15000]
+    titre_final = titre_json_ld or titre_rendu or titre_texte_brut or url
+    texte_complet = "\n\n".join([partie for partie in [texte_json_ld, texte_brut] if partie]).strip()
+    if len(texte_complet) > 15000:
+        texte_complet = texte_complet[:15000]
 
-    return {"url": url, "title": final_title, "text": combined_text}
+    return {"url": url, "title": titre_final, "text": texte_complet}
 
 
-def _match_allowed_domain(host: str, allowed: set[str]) -> bool:
-    """Match exact domain ou sous-domaine. Ex: m.amazon.ca, pages.ebay.com."""
-    h = host.lower().split(":", 1)[0]   # enlève un éventuel :port
-    if h.startswith("www."):
-        h = h[4:]
-    return any(h == d or h.endswith("." + d) for d in allowed)
+def _match_allowed_domain(host: str, domaines_autorises: set[str]) -> bool:
+    """Vérifie que 'host' correspond à un domaine autorisé (ou à un de ses sous-domaines).
+    Exemple : m.amazon.ca et pages.ebay.com doivent être reconnus comme amazon.ca / ebay.com."""
+    nom_hote = host.lower().split(":", 1)[0]   # enlève un éventuel :port
+    if nom_hote.startswith("www."):
+        nom_hote = nom_hote[4:]
+    return any(nom_hote == domaine or nom_hote.endswith("." + domaine) for domaine in domaines_autorises)
 
 
 def smart_fetch(url: str) -> dict:
-    host = urlparse(url).netloc
-    if ALLOW_HEADLESS and _match_allowed_domain(host, HEADLESS_DOMAINS):
+    """
+    Choisit automatiquement la bonne façon de récupérer une page :
+      - un navigateur headless (plus lent, mais nécessaire) pour les sites connus
+        où le contenu est chargé en JavaScript,
+      - un simple téléchargement HTML sinon (beaucoup plus rapide).
+    """
+    nom_hote = urlparse(url).netloc
+    if ALLOW_HEADLESS and _match_allowed_domain(nom_hote, HEADLESS_DOMAINS):
         return fetch_rendered(url)
     return fetch_article_text(url)
 
 #------------------------------------#
 #   Le Prompt LLM                    #
 #------------------------------------#
-SYSTEM = (
+# C'est le message "système" qui explique à l'IA quel rôle elle doit jouer.
+INSTRUCTIONS_SYSTEME_IA = (
     "Tu es un expert en analyse du cycle de vie (ACV) et en durabilité. "
     "Tu lis un article produit/annonce/blog et tu extrais des faits concrets "
     "pour dresser un portrait écologique. Ne fabrique pas de chiffres si le texte "
@@ -620,13 +724,15 @@ SYSTEM = (
     "Réponds STRICTEMENT en JSON valide, sans texte autour."
 )
 
-def build_user_prompt(doc: Dict[str, str]) -> str:
+
+def build_user_prompt(contenu_page: Dict[str, str]) -> str:
     """
-    Construit les consignes pour obtenir un JSON standardisé.
+    Construit le message envoyé à l'IA : on lui donne un "schéma" (la forme
+    exacte du JSON qu'on veut recevoir en retour) ainsi que le texte de la page.
     """
-    schema = {
-        "url": doc["url"],
-        "title": doc["title"],
+    structure_attendue = {
+        "url": contenu_page["url"],
+        "title": contenu_page["title"],
         "category": "one of ['vetements','maison_meubles','electronique','electromenagers','sport_plein_air','produits_menagers','jouets','bagagerie','bricolage','vehicules','autre'] — catégorie générale du produit",
         "features": {
             "materials": "string: matériaux mentionnés (ex: coton bio, polyester recyclé...)",
@@ -654,55 +760,59 @@ def build_user_prompt(doc: Dict[str, str]) -> str:
         }
     }
 
-    instructions = (
+    consignes = (
         "Lis le CONTENU ci-dessous et remplis le SCHEMA. "
         "Utilise uniquement les informations disponibles (ou 'unknown/null'). "
         "Si des nombres sont fournis dans le texte (ex: litres d'eau, kg CO2e), capture-les.\n\n"
-        f"SCHEMA (exemple de clés attendues):\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n\n"
+        f"SCHEMA (exemple de clés attendues):\n{json.dumps(structure_attendue, ensure_ascii=False, indent=2)}\n\n"
         "CONTENU:\n"
-        f"URL: {doc['url']}\n"
-        f"TITRE: {doc['title']}\n"
-        f"TEXTE:\n{doc['text']}\n\n"
+        f"URL: {contenu_page['url']}\n"
+        f"TITRE: {contenu_page['title']}\n"
+        f"TEXTE:\n{contenu_page['text']}\n\n"
         "RÉPONDS UNIQUEMENT AVEC UN JSON VALIDE."
     )
-    return instructions
+    return consignes
 
-def call_llm(doc: Dict[str, str]) -> Dict[str, Any]:
-    """
-    Appelle le LLM et renvoie un dict Python.
-    Tolère un JSON entouré de ```...```.
-    """
-    msg = build_user_prompt(doc)
 
-    resp = client.chat.completions.create(
+def call_llm(contenu_page: Dict[str, str]) -> Dict[str, Any]:
+    """
+    Envoie le contenu de la page à l'IA (OpenAI) et renvoie sa réponse sous
+    forme de dictionnaire Python. Tolère que la réponse soit entourée de
+    balises ```...``` (les IA ajoutent parfois ça par habitude).
+    """
+    message_utilisateur = build_user_prompt(contenu_page)
+
+    reponse_api = client.chat.completions.create(
         model=OPENAI_MODEL,
         messages=[
-            {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": msg},
+            {"role": "system", "content": INSTRUCTIONS_SYSTEME_IA},
+            {"role": "user", "content": message_utilisateur},
         ],
         temperature=0.2,
     )
-    content = resp.choices[0].message.content
+    contenu_reponse = reponse_api.choices[0].message.content
 
-    # Nettoie les éventuels fences
-    content = content.strip()
-    content = re.sub(r"^```(json)?", "", content).strip()
-    content = re.sub(r"```$", "", content).strip()
+    # Nettoie les éventuelles balises ```json ... ``` autour de la réponse
+    contenu_reponse = contenu_reponse.strip()
+    contenu_reponse = re.sub(r"^```(json)?", "", contenu_reponse).strip()
+    contenu_reponse = re.sub(r"```$", "", contenu_reponse).strip()
 
     try:
-        data = json.loads(content)
+        donnees_json = json.loads(contenu_reponse)
     except Exception:
-        # Dernier recours : extrait le premier bloc {...}
-        m = re.search(r"\{.*\}", content, flags=re.DOTALL)
-        if not m:
+        # Dernier recours : on extrait le premier bloc {...} trouvé dans le texte
+        bloc_trouve = re.search(r"\{.*\}", contenu_reponse, flags=re.DOTALL)
+        if not bloc_trouve:
             raise ValueError("Réponse LLM non JSON.")
-        data = json.loads(m.group(0))
-    return data
+        donnees_json = json.loads(bloc_trouve.group(0))
+    return donnees_json
 
 #------------------------------------#
 # Scoring: pondérations (mieux = score plus haut)
 #------------------------------------#
-WEIGHTS = {
+# Chaque critère a un "poids" (son importance relative dans la note finale).
+# La somme de tous les poids fait 1.0 (= 100%).
+POIDS_CRITERES_SCORE = {
     "materials": 0.18,
     "water": 0.14,
     "energy": 0.14,
@@ -713,151 +823,154 @@ WEIGHTS = {
     "packaging_transport": 0.05,
 }
 
-#------------------------------------#
 
-def compute_eco_score(sub: Dict[str, Any]) -> float:
+def compute_eco_score(sous_scores: Dict[str, Any]) -> float:
     """
-    Calcule un score global [0..100] à partir des sous-scores.
-    Si une clé manque, on considère 50 (neutre).
+    Calcule le score écologique global (entre 0 et 100) à partir des
+    sous-scores renvoyés par l'IA, en appliquant la pondération de chaque
+    critère. Si un critère manque, on lui donne la valeur neutre 50.
     """
-    total = 0.0
-    for k, w in WEIGHTS.items():
-        s = sub.get(k, 50)
+    score_total = 0.0
+    for nom_critere, poids in POIDS_CRITERES_SCORE.items():
+        valeur = sous_scores.get(nom_critere, 50)
         try:
-            s = float(s)
+            valeur = float(valeur)
         except Exception:
-            s = 50.0
-        total += w * s
-    return round(total, 2)
+            valeur = 50.0
+        score_total += poids * valeur
+    return round(score_total, 2)
 
-def tests():
-    tests = [
-        "https://www.amazon.ca/HyperX-Cloud-Alpha-Wireless-Headphone/dp/B09TRW57WB?th=1",
-        "https://www.aliexpress.com/item/1005010013644974.html?spm=a2g0o.productlist.main.2.3b68CoevCoevj9&aem_p4p_detail=20251107170621635875746455130001499353&algo_pvid=8d10440d-4936-4f55-ab36-c704c8ad74c2&algo_exp_id=8d10440d-4936-4f55-ab36-c704c8ad74c2-1&pdp_ext_f=%7B%22order%22%3A%22230%22%2C%22eval%22%3A%221%22%2C%22fromPage%22%3A%22search%22%7D&pdp_npi=6%40dis%21CAD%21125.07%2151.69%21%21%21616.43%21254.79%21%40210328db17625639817935419eb863%2112000050844510458%21sea%21CA%210%21ABX%211%210%21n_tag%3A-29910%3Bd%3Aa7c3cc63%3Bm03_new_user%3A-29895%3BpisId%3A5000000187429864&curPageLogUid=w2glZASoKnHM&utparam-url=scene%3Asearch%7Cquery_from%3A%7Cx_object_id%3A1005010013644974%7C_p_origin_prod%3A&search_p4p_id=20251107170621635875746455130001499353_1",
-        "https://www.alibaba.com/product-detail/Modern-X1-PRO-AI-Smart-Sports_1601600396621.html?selectedCarrierCode=SEMI_MANAGED_STANDARD%40%40STANDARD&priceId=811beff19fbb47feb6cc664408b7aa6f",
-        "https://www.wish.com/search/ecouteurs/product/685ed09ee289e1554cb3f17f?source=search&position=13",
-        "https://www.ebay.ca/p/14059427736?iid=314505929469"
-    ]
-    for u in tests:
-        print(urlparse(u).netloc, "→", _match_allowed_domain(urlparse(u).netloc, HEADLESS_DOMAINS))
 
-def _extract_domain(u: str) -> str:
+def _extract_domain(url: str) -> str:
+    """Renvoie juste le nom de domaine d'une URL (ex: 'amazon.ca' pour 'https://www.amazon.ca/xyz')."""
     try:
-        h = urlparse(u).netloc.lower()
-        return h[4:] if h.startswith("www.") else h
+        nom_hote = urlparse(url).netloc.lower()
+        return nom_hote[4:] if nom_hote.startswith("www.") else nom_hote
     except Exception:
         return ""
 
+
 # --- Google Cloud Vision: Web Detection (image -> pages similaires) ---
-def gcv_web_detection(image_bytes: bytes, filename: str = "upload.jpg") -> list[dict]:
+def gcv_web_detection(donnees_image: bytes, nom_fichier: str = "upload.jpg") -> list[dict]:
     """
-    Utilise Google Cloud Vision (Web Detection) pour trouver des pages
-    qui contiennent cette image (ou une variante). Retourne une liste
-    d'items: {thumb, url, site, price(None)}.
+    Utilise Google Cloud Vision (Web Detection) pour trouver des pages web qui
+    contiennent cette image (ou une variante très proche). Retourne une liste
+    d'articles: {thumb, url, site, price(None au départ)}.
     """
     from urllib.parse import urlparse
 
     try:
         from google.cloud import vision
-        client = vision.ImageAnnotatorClient()
-        resp = client.web_detection(image=vision.Image(content=image_bytes))
-        web = resp.web_detection
+        client_vision = vision.ImageAnnotatorClient()
+        reponse = client_vision.web_detection(image=vision.Image(content=donnees_image))
+        detection_web = reponse.web_detection
     except Exception:
         return []
 
-    results: list[dict] = []
-    if web and web.pages_with_matching_images:
-        for p in web.pages_with_matching_images:
-            url = (p.url or "").strip()
-            if not url:
+    resultats: list[dict] = []
+    if detection_web and detection_web.pages_with_matching_images:
+        for page_trouvee in detection_web.pages_with_matching_images:
+            url_page = (page_trouvee.url or "").strip()
+            if not url_page:
                 continue
-            # miniature si dispo (full match > partial match)
-            img0 = (p.full_matching_images or p.partial_matching_images or [None])[0]
-            thumb = getattr(img0, "url", None) if img0 else None
+            # miniature si disponible (une correspondance "complète" est préférée à "partielle")
+            premiere_image = (page_trouvee.full_matching_images or page_trouvee.partial_matching_images or [None])[0]
+            miniature = getattr(premiere_image, "url", None) if premiere_image else None
 
-            host = urlparse(url).netloc.lower()
-            if host.startswith("www."):
-                host = host[4:]
+            nom_hote = urlparse(url_page).netloc.lower()
+            if nom_hote.startswith("www."):
+                nom_hote = nom_hote[4:]
 
-            results.append({
-                "thumb": thumb,
-                "url": url,
-                "site": host,
-                "price": None,  # GCV ne renvoie pas de prix
+            resultats.append({
+                "thumb": miniature,
+                "url": url_page,
+                "site": nom_hote,
+                "price": None,  # Google Vision ne renvoie pas de prix
             })
 
-    # dédoublonnage par URL (préserve l'ordre)
-    seen, uniq = set(), []
-    for r in results:
-        if r["url"] in seen: continue
-        seen.add(r["url"]); uniq.append(r)
+    # dédoublonnage par URL (on garde l'ordre d'apparition)
+    urls_vues, resultats_uniques = set(), []
+    for resultat in resultats:
+        if resultat["url"] in urls_vues:
+            continue
+        urls_vues.add(resultat["url"])
+        resultats_uniques.append(resultat)
 
-    # --- Enrichissement prix sur les N premiers (évite d'être lent) ---
-    N = 8  # ajuste si tu veux plus/moins de scraping
-    for i, item in enumerate(uniq[:N]):
-        price = try_extract_price(item["url"])
-        if price:
-            item["price"] = price
+    # --- Enrichissement du prix sur les N premiers résultats (pour éviter d'être trop lent) ---
+    nombre_max_a_enrichir = 8  # ajuste si tu veux plus/moins de scraping
+    for article in resultats_uniques[:nombre_max_a_enrichir]:
+        prix = try_extract_price(article["url"])
+        if prix:
+            article["price"] = prix
 
-    return uniq
+    return resultats_uniques
 
 # ------------------------------
 # Routes
 # ------------------------------
+# Une "route" est une adresse (URL) que le site sait gérer. Flask exécute
+# la fonction juste en-dessous chaque fois qu'un visiteur ouvre cette adresse.
+
 @app.get("/")
 def index():
-    record_visit("index")
+    enregistrer_visite("index")
     return render_template("index.html")
 
 
 @app.post("/api/analyze")
 def api_analyze():
-    data = request.get_json(force=True)
-    urls: List[str] = [u.strip() for u in data.get("urls", []) if u.strip()]
+    """
+    Reçoit une liste d'URLs (envoyée par le JavaScript de la page d'accueil),
+    analyse chaque page une par une, puis renvoie un classement écologique
+    au format JSON.
+    """
+    donnees_requete = request.get_json(force=True)
+    urls: List[str] = [u.strip() for u in donnees_requete.get("urls", []) if u.strip()]
     if len(urls) < 2:
         return jsonify({"error": "Veuillez fournir au moins 2 URL."}), 400
 
-    results = []
-    errors = []
+    resultats = []
+    erreurs = []
 
     for url in urls:
         try:
-            doc = smart_fetch(url)
-            llm = call_llm(doc)
-            subs = llm.get("subscores", {}) or {}
-            eco_score = compute_eco_score(subs)
-            category = llm.get("category") or "autre"
-            record_submission(doc["url"], category)
-            results.append({
-                "url": doc["url"],
-                "title": llm.get("title") or doc["title"],
-                "features": llm.get("features", {}),
-                "subscores": subs,
-                "eco_score": eco_score
+            contenu_page = smart_fetch(url)
+            analyse_ia = call_llm(contenu_page)
+            sous_scores = analyse_ia.get("subscores", {}) or {}
+            score_ecologique = compute_eco_score(sous_scores)
+            categorie = analyse_ia.get("category") or "autre"
+            enregistrer_soumission(contenu_page["url"], categorie)
+            resultats.append({
+                "url": contenu_page["url"],
+                "title": analyse_ia.get("title") or contenu_page["title"],
+                "features": analyse_ia.get("features", {}),
+                "subscores": sous_scores,
+                "eco_score": score_ecologique
             })
-        except Exception as e:
-            errors.append({"url": url, "error": str(e)})
+        except Exception as erreur:
+            erreurs.append({"url": url, "error": str(erreur)})
 
-    # Classement décroissant (meilleur en premier)
-    ranking = sorted(results, key=lambda x: x["eco_score"], reverse=True)
-    # Ajoute le rang
-    for i, item in enumerate(ranking, start=1):
-        item["rank"] = i
+    # Classement décroissant (le meilleur score en premier)
+    classement = sorted(resultats, key=lambda article: article["eco_score"], reverse=True)
+    # Ajoute le rang (1er, 2e, 3e...) à chaque article
+    for rang, article in enumerate(classement, start=1):
+        article["rank"] = rang
 
-    return jsonify({"results": ranking, "errors": errors})
+    return jsonify({"results": classement, "errors": erreurs})
 
 # ---------------------------------------------------------------------------------------------------------
-# Page 2 : recherche par images / Simple, clair : on upload, on interroge Bing Visual Search, on formate la réponse en (thumb, url, site, price), et on affiche.
+# Page 2 : recherche par images / Simple, clair : on upload, on interroge Google Vision + Google Search,
+# on formate la réponse en (thumb, url, site, price), et on affiche.
 # ------------------------------------------------------------------------------------------------------------------
 @app.get("/images")
 def images_page():
-    record_visit("images")
+    enregistrer_visite("images")
     return render_template("images.html")
 
 
 @app.get("/exemples")
 def exemples_page():
-    record_visit("exemples")
+    enregistrer_visite("exemples")
     return render_template("exemples.html")
 
 
@@ -868,9 +981,18 @@ def don_page():
 
 @app.route("/stats", methods=["GET", "POST"])
 def stats_page():
+    """
+    Tableau de bord réservé à l'administrateur du site.
+    - En GET, si l'admin n'est pas encore connecté, on affiche le formulaire de mot de passe.
+    - En POST, on vérifie le mot de passe envoyé; s'il est bon, on "connecte" l'admin
+      via la session (il n'aura plus à le retaper tant que sa session est valide).
+    """
     if request.method == "POST":
-        pwd = request.form.get("password", "")
-        if ADMIN_PASSWORD and hmac.compare_digest(pwd, ADMIN_PASSWORD):
+        mot_de_passe_saisi = request.form.get("password", "")
+        # hmac.compare_digest compare deux chaînes de façon "à temps constant" :
+        # ça évite qu'un attaquant devine le mot de passe caractère par caractère
+        # en mesurant le temps de réponse du serveur.
+        if ADMIN_PASSWORD and hmac.compare_digest(mot_de_passe_saisi, ADMIN_PASSWORD):
             session["is_admin"] = True
         else:
             return render_template("stats.html", authed=False, error="Mot de passe incorrect."), 401
@@ -880,119 +1002,95 @@ def stats_page():
 
     from collections import Counter
 
-    conn = sqlite3.connect(STATS_DB_PATH)
-    conn.row_factory = sqlite3.Row
+    connexion = sqlite3.connect(STATS_DB_PATH)
+    connexion.row_factory = sqlite3.Row  # permet d'accéder aux colonnes par leur nom (ligne["city"])
 
-    cat_rows = conn.execute(
+    lignes_categories = connexion.execute(
         "SELECT category, COUNT(*) as n FROM submissions GROUP BY category ORDER BY n DESC"
     ).fetchall()
     categories = [
-        {"label": CATEGORY_LABELS.get(r["category"], r["category"] or "Autre"), "count": r["n"]}
-        for r in cat_rows
+        {"label": LIBELLES_CATEGORIES.get(ligne["category"], ligne["category"] or "Autre"), "count": ligne["n"]}
+        for ligne in lignes_categories
     ]
 
-    visitors_by_loc = {
-        (r["city"], r["region"], r["country"]): r["n"]
-        for r in conn.execute("SELECT city, region, country, COUNT(DISTINCT ip_hash) as n FROM visits GROUP BY city, region, country")
+    visiteurs_par_lieu = {
+        (ligne["city"], ligne["region"], ligne["country"]): ligne["n"]
+        for ligne in connexion.execute("SELECT city, region, country, COUNT(DISTINCT ip_hash) as n FROM visits GROUP BY city, region, country")
     }
-    submissions_by_loc = {
-        (r["city"], r["region"], r["country"]): r["n"]
-        for r in conn.execute("SELECT city, region, country, COUNT(*) as n FROM submissions GROUP BY city, region, country")
+    soumissions_par_lieu = {
+        (ligne["city"], ligne["region"], ligne["country"]): ligne["n"]
+        for ligne in connexion.execute("SELECT city, region, country, COUNT(*) as n FROM submissions GROUP BY city, region, country")
     }
 
     # Vue d'ensemble : volumes bruts + taux de conversion + sites les plus demandés
     # (indicateurs utiles pour démontrer la traction du projet)
-    unique_visitors = conn.execute("SELECT COUNT(DISTINCT ip_hash) as n FROM visits").fetchone()["n"]
-    total_pageviews = conn.execute("SELECT COUNT(*) as n FROM visits").fetchone()["n"]
-    total_submissions = conn.execute("SELECT COUNT(*) as n FROM submissions").fetchone()["n"]
-    distinct_submitters = conn.execute("SELECT COUNT(DISTINCT ip_hash) as n FROM submissions").fetchone()["n"]
-    countries_reached = conn.execute(
+    visiteurs_uniques = connexion.execute("SELECT COUNT(DISTINCT ip_hash) as n FROM visits").fetchone()["n"]
+    total_pages_vues = connexion.execute("SELECT COUNT(*) as n FROM visits").fetchone()["n"]
+    total_soumissions = connexion.execute("SELECT COUNT(*) as n FROM submissions").fetchone()["n"]
+    visiteurs_ayant_soumis = connexion.execute("SELECT COUNT(DISTINCT ip_hash) as n FROM submissions").fetchone()["n"]
+    nombre_pays_atteints = connexion.execute(
         "SELECT COUNT(DISTINCT country) as n FROM visits WHERE country NOT IN ('Local','Inconnu')"
     ).fetchone()["n"]
 
-    submission_urls = [r["url"] for r in conn.execute("SELECT url FROM submissions")]
-    conn.close()
+    urls_soumises = [ligne["url"] for ligne in connexion.execute("SELECT url FROM submissions")]
+    connexion.close()
 
     # % de visiteurs ayant utilisé la fonctionnalité principale au moins une fois
-    conversion_rate = round((distinct_submitters / unique_visitors * 100), 1) if unique_visitors else 0.0
+    taux_de_conversion = round((visiteurs_ayant_soumis / visiteurs_uniques * 100), 1) if visiteurs_uniques else 0.0
 
-    domain_counts = Counter(_extract_domain(u) or "(inconnu)" for u in submission_urls)
-    top_domains = [{"domain": d, "count": c} for d, c in domain_counts.most_common(10)]
+    compteur_domaines = Counter(_extract_domain(url) or "(inconnu)" for url in urls_soumises)
+    domaines_les_plus_demandes = [{"domain": domaine, "count": nombre} for domaine, nombre in compteur_domaines.most_common(10)]
 
-    overview = {
-        "unique_visitors": unique_visitors,
-        "total_pageviews": total_pageviews,
-        "total_submissions": total_submissions,
-        "conversion_rate": conversion_rate,
-        "countries_reached": countries_reached,
+    vue_ensemble = {
+        "unique_visitors": visiteurs_uniques,
+        "total_pageviews": total_pages_vues,
+        "total_submissions": total_soumissions,
+        "conversion_rate": taux_de_conversion,
+        "countries_reached": nombre_pays_atteints,
     }
 
-    locations = [
+    lieux = [
         {
-            "city": city, "region": region, "country": country,
-            "visitors": visitors_by_loc.get((city, region, country), 0),
-            "submissions": submissions_by_loc.get((city, region, country), 0),
+            "city": ville, "region": region, "country": pays,
+            "visitors": visiteurs_par_lieu.get((ville, region, pays), 0),
+            "submissions": soumissions_par_lieu.get((ville, region, pays), 0),
         }
-        for city, region, country in (set(visitors_by_loc) | set(submissions_by_loc))
+        for ville, region, pays in (set(visiteurs_par_lieu) | set(soumissions_par_lieu))
     ]
-    locations.sort(key=lambda x: (x["submissions"], x["visitors"]), reverse=True)
+    lieux.sort(key=lambda lieu: (lieu["submissions"], lieu["visitors"]), reverse=True)
 
     return render_template(
         "stats.html", authed=True,
-        overview=overview, categories=categories, locations=locations, top_domains=top_domains
+        overview=vue_ensemble, categories=categories, locations=lieux, top_domains=domaines_les_plus_demandes
     )
 
 
 @app.post("/images")
 def images_search():
-    f = request.files.get("file")
-    if not f or not f.filename:
+    fichier_recu = request.files.get("file")
+    if not fichier_recu or not fichier_recu.filename:
         return render_template("images.html", error="Aucun fichier reçu.")
 
-    img_bytes = f.read()
+    donnees_image = fichier_recu.read()
 
     try:
-        result_search = ultimate_search(img_bytes)
-    except Exception as e:
-        return render_template("images.html", error=f"Erreur lors de la recherche : {e}")
+        resultat_recherche = recherche_image_complete(donnees_image)
+    except Exception as erreur:
+        return render_template("images.html", error=f"Erreur lors de la recherche : {erreur}")
 
-    mime = _detect_mime(img_bytes)
-    result = {
-        "query_filename": f.filename,
+    type_mime = deviner_type_image(donnees_image)
+    resultat = {
+        "query_filename": fichier_recu.filename,
         "query_preview_b64": (
-            f"data:{mime};base64,"
-            + base64.b64encode(img_bytes).decode("utf-8")
+            f"data:{type_mime};base64,"
+            + base64.b64encode(donnees_image).decode("utf-8")
         ),
-        "description": result_search.get("description", ""),
-        "items": result_search["items"]
+        "description": resultat_recherche.get("description", ""),
+        "items": resultat_recherche["items"]
     }
 
-    return render_template("images.html", result=result)
+    return render_template("images.html", result=resultat)
 
-
-#---------------------------------------#
-# Google Cloud Vision seul              #
-#---------------------------------------# 
-# 
-# @app.post("/images")
-#def images_search():
-#    f = request.files.get("file")
-#    if not f or not f.filename:
-#        return render_template("images.html", error="Aucun fichier reçu.")
-#    img_bytes = f.read()
-#
-#    try:
-#        items = gcv_web_detection(img_bytes, f.filename)
-#    except Exception as e:
-#        return render_template("images.html", error=f"Google Vision a échoué: {e}")
-#
-#    result = {
-#        "query_filename": f.filename,
-#        "query_preview_b64": "data:" + (mimetypes.guess_type(f.filename)[0] or "image/jpeg") + ";base64," +
-#                             __import__("base64").b64encode(img_bytes).decode("utf-8"),
-#        "items": items[:20],
-#    }
-#    return render_template("images.html", result=result)
 
 # -----------------------------------------------------------------#
 # Routes pour aider l'indexation sur les moteurs de recherche
@@ -1000,23 +1098,26 @@ def images_search():
 
 @app.get("/robots.txt")
 def robots():
-    body = "User-agent: *\nAllow: /\nSitemap: " + url_for('sitemap', _external=True) + "\n"
-    return Response(body, mimetype="text/plain")
+    """Fichier standard qui indique aux moteurs de recherche ce qu'ils peuvent explorer."""
+    contenu_reponse = "User-agent: *\nAllow: /\nSitemap: " + url_for('sitemap', _external=True) + "\n"
+    return Response(contenu_reponse, mimetype="text/plain")
+
 
 @app.get("/sitemap.xml")
 def sitemap():
-    pages = [
+    """Liste des pages du site, pour aider Google/Bing à toutes les découvrir."""
+    liste_urls = [
         url_for("index", _external=True),
         url_for("images_page", _external=True),
         url_for("exemples_page", _external=True),
     ]
-    today = datetime.utcnow().date().isoformat()
-    xml = ['<?xml version="1.0" encoding="UTF-8"?>',
-           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-    for loc in pages:
-        xml += [f"<url><loc>{loc}</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq></url>"]
-    xml.append("</urlset>")
-    return Response("\n".join(xml), mimetype="application/xml")
+    date_du_jour = datetime.utcnow().date().isoformat()
+    lignes_xml = ['<?xml version="1.0" encoding="UTF-8"?>',
+                  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for url_page in liste_urls:
+        lignes_xml += [f"<url><loc>{url_page}</loc><lastmod>{date_du_jour}</lastmod><changefreq>weekly</changefreq></url>"]
+    lignes_xml.append("</urlset>")
+    return Response("\n".join(lignes_xml), mimetype="application/xml")
 
 # ------------------------------
 # Main (local)
@@ -1026,6 +1127,5 @@ if __name__ == "__main__":
         print("   Ouvre un terminal et exporte ta clé :")
         print("   Windows PowerShell: $env:OPENAI_API_KEY='sk-...'\n"
               "   macOS/Linux: export OPENAI_API_KEY='sk-...'")
-        
+
     app.run(debug=True)
-    
