@@ -207,6 +207,7 @@
 
       <!-- Résultats: classement -->
       <section id="results" class="hidden">
+        <div id="shareBox" style="margin-bottom:14px;"></div>
         <h2 id="h2Results">Classement écologique (décroissant)</h2>
         <ol id="ranking"></ol>
 
@@ -291,6 +292,7 @@
     const resultsSec = document.getElementById('results');
     const rankingOl = document.getElementById('ranking');
     const cardsDiv = document.getElementById('cards');
+    const shareBox = document.getElementById('shareBox');
 
     function makeInput(i, value="") {
       const wrap = document.createElement('div');
@@ -433,6 +435,26 @@
         }
 
         resultsSec.classList.remove('hidden');
+
+        // --- Bouton de partage : sauvegarde ce résultat et copie le lien public ---
+        shareBox.innerHTML = `<button class="btn primary" id="shareBtn">${jsTr.shareBtn}</button> <span id="shareMsg" class="msg"></span>`;
+        document.getElementById('shareBtn').onclick = async () => {
+          const shareMsgEl = document.getElementById('shareMsg');
+          try {
+            const shareRes = await fetch("/api/share", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ results: data.results })
+            });
+            const shareData = await shareRes.json();
+            if (!shareRes.ok) throw new Error(shareData.error || t().index.js.unknownError);
+            try { await navigator.clipboard.writeText(shareData.share_url); } catch (clipErr) {}
+            shareMsgEl.textContent = t().index.js.shareCopied + shareData.share_url;
+            shareMsgEl.classList.add('ok');
+          } catch (shareErr) {
+            shareMsgEl.textContent = t().index.js.shareError + shareErr.message;
+          }
+        };
       } catch (e) {
         msg.textContent = t().index.js.errorPrefix + e.message;
       } finally {

@@ -44,7 +44,8 @@ const ECO_TRANSLATIONS = {
         lblMaterials: "Matériaux", lblWater: "Eau (L)", lblEnergy: "Énergie (kWh)", lblCo2e: "CO₂e (kg)",
         lblBiodeg: "Bio-dégradabilité", lblRecyc: "Recyclabilité", lblDurability: "Durabilité/Réparabilité",
         lblCertifications: "Certifications", lblPackaging: "Packaging", lblTransport: "Transport",
-        lblNotes: "Notes", lblConfidence: "Confiance", viewSubscores: "Voir sous-scores", errorsTitle: "URLs en erreur :"
+        lblNotes: "Notes", lblConfidence: "Confiance", viewSubscores: "Voir sous-scores", errorsTitle: "URLs en erreur :",
+        shareBtn: "🔗 Partager ce résultat", shareCopied: "Lien copié : ", shareError: "Erreur de partage : "
       }
     },
     images: {
@@ -141,7 +142,8 @@ const ECO_TRANSLATIONS = {
         lblMaterials: "Materials", lblWater: "Water (L)", lblEnergy: "Energy (kWh)", lblCo2e: "CO₂e (kg)",
         lblBiodeg: "Biodegradability", lblRecyc: "Recyclability", lblDurability: "Durability/Repairability",
         lblCertifications: "Certifications", lblPackaging: "Packaging", lblTransport: "Transport",
-        lblNotes: "Notes", lblConfidence: "Confidence", viewSubscores: "View sub-scores", errorsTitle: "URLs with errors:"
+        lblNotes: "Notes", lblConfidence: "Confidence", viewSubscores: "View sub-scores", errorsTitle: "URLs with errors:",
+        shareBtn: "🔗 Share this result", shareCopied: "Link copied: ", shareError: "Share error: "
       }
     },
     images: {
@@ -238,7 +240,8 @@ const ECO_TRANSLATIONS = {
         lblMaterials: "Materiales", lblWater: "Agua (L)", lblEnergy: "Energía (kWh)", lblCo2e: "CO₂e (kg)",
         lblBiodeg: "Biodegradabilidad", lblRecyc: "Reciclabilidad", lblDurability: "Durabilidad/Reparabilidad",
         lblCertifications: "Certificaciones", lblPackaging: "Empaque", lblTransport: "Transporte",
-        lblNotes: "Notas", lblConfidence: "Confianza", viewSubscores: "Ver subpuntuaciones", errorsTitle: "URLs con errores:"
+        lblNotes: "Notas", lblConfidence: "Confianza", viewSubscores: "Ver subpuntuaciones", errorsTitle: "URLs con errores:",
+        shareBtn: "🔗 Compartir este resultado", shareCopied: "Enlace copiado: ", shareError: "Error al compartir: "
       }
     },
     images: {
@@ -335,7 +338,8 @@ const ECO_TRANSLATIONS = {
         lblMaterials: "Materialien", lblWater: "Wasser (L)", lblEnergy: "Energie (kWh)", lblCo2e: "CO₂e (kg)",
         lblBiodeg: "Bioabbaubarkeit", lblRecyc: "Recyclingfähigkeit", lblDurability: "Haltbarkeit/Reparierbarkeit",
         lblCertifications: "Zertifizierungen", lblPackaging: "Verpackung", lblTransport: "Transport",
-        lblNotes: "Notizen", lblConfidence: "Vertrauen", viewSubscores: "Unterbewertungen ansehen", errorsTitle: "URLs mit Fehlern:"
+        lblNotes: "Notizen", lblConfidence: "Vertrauen", viewSubscores: "Unterbewertungen ansehen", errorsTitle: "URLs mit Fehlern:",
+        shareBtn: "🔗 Ergebnis teilen", shareCopied: "Link kopiert: ", shareError: "Fehler beim Teilen: "
       }
     },
     images: {
@@ -432,7 +436,8 @@ const ECO_TRANSLATIONS = {
         lblMaterials: "Materiali", lblWater: "Acqua (L)", lblEnergy: "Energia (kWh)", lblCo2e: "CO₂e (kg)",
         lblBiodeg: "Biodegradabilità", lblRecyc: "Riciclabilità", lblDurability: "Durabilità/Riparabilità",
         lblCertifications: "Certificazioni", lblPackaging: "Imballaggio", lblTransport: "Trasporto",
-        lblNotes: "Note", lblConfidence: "Fiducia", viewSubscores: "Vedi i sottopunteggi", errorsTitle: "URL con errori:"
+        lblNotes: "Note", lblConfidence: "Fiducia", viewSubscores: "Vedi i sottopunteggi", errorsTitle: "URL con errori:",
+        shareBtn: "🔗 Condividi questo risultato", shareCopied: "Link copiato: ", shareError: "Errore di condivisione: "
       }
     },
     images: {
@@ -529,7 +534,8 @@ const ECO_TRANSLATIONS = {
         lblMaterials: "المواد", lblWater: "الماء (لتر)", lblEnergy: "الطاقة (كيلوواط ساعة)", lblCo2e: "ثاني أكسيد الكربون المكافئ (كغ)",
         lblBiodeg: "قابلية التحلل الحيوي", lblRecyc: "قابلية إعادة التدوير", lblDurability: "المتانة/قابلية الإصلاح",
         lblCertifications: "الشهادات", lblPackaging: "التغليف", lblTransport: "النقل",
-        lblNotes: "ملاحظات", lblConfidence: "درجة الثقة", viewSubscores: "عرض النتائج الفرعية", errorsTitle: "روابط بها أخطاء:"
+        lblNotes: "ملاحظات", lblConfidence: "درجة الثقة", viewSubscores: "عرض النتائج الفرعية", errorsTitle: "روابط بها أخطاء:",
+        shareBtn: "🔗 مشاركة هذه النتيجة", shareCopied: "تم نسخ الرابط: ", shareError: "خطأ في المشاركة: "
       }
     },
     images: {
@@ -626,7 +632,8 @@ const ECO_TRANSLATIONS = {
         lblMaterials: "材料", lblWater: "用水量（升）", lblEnergy: "能耗（千瓦时）", lblCo2e: "二氧化碳当量（千克）",
         lblBiodeg: "可生物降解性", lblRecyc: "可回收性", lblDurability: "耐用性/可维修性",
         lblCertifications: "认证", lblPackaging: "包装", lblTransport: "运输",
-        lblNotes: "备注", lblConfidence: "置信度", viewSubscores: "查看细项评分", errorsTitle: "出错的网址："
+        lblNotes: "备注", lblConfidence: "置信度", viewSubscores: "查看细项评分", errorsTitle: "出错的网址：",
+        shareBtn: "🔗 分享此结果", shareCopied: "链接已复制：", shareError: "分享出错："
       }
     },
     images: {

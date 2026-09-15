@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  {% if gagnant %}
+    <title>{{ gagnant.title }} gagne ce comparatif éco-responsable ({{ gagnant.eco_score }}/100) — Achat Éco-Responsable</title>
+    <meta name="description" content="Comparaison de {{ resultats|length }} articles selon leur impact environnemental (matériaux, eau, CO₂e, recyclabilité). {{ gagnant.title }} arrive en tête avec un score de {{ gagnant.eco_score }}/100.">
+  {% else %}
+    <title>Comparatif éco-responsable introuvable — Achat Éco-Responsable</title>
+    <meta name="description" content="Ce lien de partage n'existe plus ou a expiré.">
+    <meta name="robots" content="noindex, follow">
+  {% endif %}
+  <link rel="canonical" href="{{ request.url }}">
+
+  <!-- Open Graph / Twitter : chaque comparaison partagée a son propre aperçu -->
+  <meta property="og:type" content="website">
+  {% if gagnant %}
+    <meta property="og:title" content="{{ gagnant.title }} gagne ce comparatif éco-responsable ({{ gagnant.eco_score }}/100)">
+    <meta property="og:description" content="Comparaison de {{ resultats|length }} articles selon leur impact environnemental — matériaux, eau, CO₂e, recyclabilité.">
+  {% endif %}
+  <meta property="og:url" content="{{ request.url }}">
+  <meta property="og:image" content="{{ url_for('static', filename='og-card.jpg', _external=True) }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="stylesheet" href="/static/styles.css"/>
+  <style>
+    .winner-banner{
+      background:var(--card); border:2px solid var(--brand); border-radius:14px;
+      padding:18px 20px; text-align:center; margin:18px 0;
+    }
+    .winner-banner .trophy{ font-size:1.6rem; }
+    .winner-banner .score{ color:var(--brand); font-weight:800; font-size:1.4rem; }
+  </style>
+</head>
+<body>
+  <header class="barre">
+    <h1><img src="/static/panier_achat_eco_4.png" alt="Aperçu"
+             style="height:60px;width:auto;max-width:100%;
+                    border-radius:10px;border:1px solid #1f2937;object-fit:contain"/>
+                     Comparatif partagé</h1>
+    <p class="small"><small><a href="/">← Faire ma propre comparaison sur Achat Eco-Responsable</a></small></p>
+  </header>
+
+  <main class="container">
+    {% if not resultats %}
+      <section class="card">
+        <p class="hint">Ce lien de partage n'existe plus ou a expiré.</p>
+        <a class="btn primary" href="/">Faire une nouvelle comparaison →</a>
+      </section>
+    {% else %}
+      <section class="winner-banner">
+        <div class="trophy">🏆</div>
+        <p style="margin:6px 0 0"><b>{{ gagnant.title }}</b> remporte ce comparatif</p>
+        <p class="score">{{ gagnant.eco_score }}/100</p>
+      </section>
+
+      <section>
+        <h2>Classement écologique (décroissant)</h2>
+        <ol>
+          {% for article in resultats %}
+            <li><strong>{{ article.title }}</strong> — score {{ article.eco_score }}<br><small>{{ article.url }}</small></li>
+          {% endfor %}
+        </ol>
+
+        <h3>Détails par article</h3>
+        <div class="cards">
+          {% for article in resultats %}
+            {% set f = article.features or {} %}
+            <article class="card">
+              <h4>{{ article.title }}</h4>
+              <p><a href="{{ article.url }}" target="_blank" rel="noopener">Ouvrir la page</a></p>
+              <p><b>Score global :</b> {{ article.eco_score }}  |  <b>Rang :</b> {{ article.rank }}</p>
+              <div class="grid">
+                <div><b>Matériaux</b><br>{{ f.materials or "—" }}</div>
+                <div><b>Eau (L)</b><br>{{ f.water_use_liters if f.water_use_liters is not none else "—" }}</div>
+                <div><b>Énergie (kWh)</b><br>{{ f.energy_use_kwh if f.energy_use_kwh is not none else "—" }}</div>
+                <div><b>CO₂e (kg)</b><br>{{ f.co2e_kg if f.co2e_kg is not none else "—" }}</div>
+                <div><b>Bio-dégradabilité</b><br>{{ f.biodegradability or "unknown" }}</div>
+                <div><b>Recyclabilité</b><br>{{ f.recyclability or "unknown" }}</div>
+                <div><b>Durabilité/Réparabilité</b><br>{{ f.durability_repairability or "unknown" }}</div>
+                <div><b>Certifications</b><br>{{ (f.certifications or [])|join(", ") or "—" }}</div>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="card" style="text-align:center; margin-top:20px;">
+        <p class="hint">Envie de comparer tes propres articles ?</p>
+        <a class="btn primary" href="/">Lancer ma comparaison →</a>
+      </section>
+    {% endif %}
+  </main>
+
+  <footer>
+    <small>
+      <p>
+        © Tous droits réservés • Automne 2025 • Projet à intérêt Écologique. <br>
+        Réalisé par JOEL SANDÉ, du Saguenay Lac Saint-Jean.
+      </p>
+      <p><a href="/don">💚 Soutenir ce projet (don)</a></p>
+    </small>
+  </footer>
+</body>
+</html>

@@ -24,6 +24,7 @@ import sqlite3      # petite base de données locale utilisée par le tableau de
 import hashlib      # pour transformer une IP en empreinte (hash) irréversible
 import hmac         # comparaison "sécurisée" de mots de passe (évite les attaques par timing)
 import ipaddress    # pour reconnaître les adresses IP privées (ex: 127.0.0.1, réseau local)
+import secrets      # pour générer un identifiant court et imprévisible (lien de partage)
 
 from dataclasses import dataclass
 from typing import List, Dict, Any
@@ -183,6 +184,14 @@ def initialiser_base_de_donnees_stats():
     connexion.execute("""CREATE TABLE IF NOT EXISTS submissions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ip_hash TEXT, city TEXT, region TEXT, country TEXT, url TEXT, category TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )""")
+    # Table utilisée par la fonctionnalité de partage : chaque comparaison
+    # qu'un visiteur choisit de partager est sauvegardée ici sous un
+    # identifiant court, pour pouvoir être réaffichée via /r/<id>.
+    connexion.execute("""CREATE TABLE IF NOT EXISTS shared_results (
+        id TEXT PRIMARY KEY,
+        payload_json TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )""")
     # Migration douce : ajoute la colonne 'region' si la DB existait déjà sans elle.
@@ -957,6 +966,58 @@ def api_analyze():
         article["rank"] = rang
 
     return jsonify({"results": classement, "errors": erreurs})
+
+
+@app.post("/api/share")
+def api_share():
+    """
+    Sauvegarde le résultat d'une comparaison déjà calculée, pour qu'on puisse
+    la partager via un lien court et permanent (utile pour les réseaux sociaux :
+    chaque comparaison devient une petite page avec son propre aperçu).
+    """
+    donnees_requete = request.get_json(force=True)
+    resultats = donnees_requete.get("results", [])
+    if not resultats or len(resultats) < 2:
+        return jsonify({"error": "Rien à partager pour l'instant."}), 400
+
+    # On ne garde que les champs utiles à l'affichage public (pas besoin
+    # de tout le détail des sous-scores pour cette page de partage).
+    resultats_a_sauvegarder = [{
+        "title": article.get("title"),
+        "url": article.get("url"),
+        "eco_score": article.get("eco_score"),
+        "rank": article.get("rank"),
+        "features": article.get("features", {}),
+    } for article in resultats[:10]]  # limite raisonnable
+
+    identifiant = secrets.token_urlsafe(6)  # ex: "aZ3xQk1" — assez court pour un lien, assez long pour éviter les collisions
+    connexion = sqlite3.connect(STATS_DB_PATH)
+    connexion.execute(
+        "INSERT INTO shared_results (id, payload_json) VALUES (?, ?)",
+        (identifiant, json.dumps(resultats_a_sauvegarder, ensure_ascii=False))
+    )
+    connexion.commit()
+    connexion.close()
+
+    return jsonify({"share_url": url_for("page_resultat_partage", identifiant=identifiant, _external=True)})
+
+
+@app.get("/r/<identifiant>")
+def page_resultat_partage(identifiant):
+    """Page publique et permanente montrant un résultat de comparaison déjà calculé."""
+    connexion = sqlite3.connect(STATS_DB_PATH)
+    connexion.row_factory = sqlite3.Row
+    ligne = connexion.execute(
+        "SELECT payload_json FROM shared_results WHERE id = ?", (identifiant,)
+    ).fetchone()
+    connexion.close()
+
+    if not ligne:
+        return render_template("partage.html", resultats=None), 404
+
+    resultats = json.loads(ligne["payload_json"])
+    gagnant = resultats[0] if resultats else None
+    return render_template("partage.html", resultats=resultats, gagnant=gagnant)
 
 # ---------------------------------------------------------------------------------------------------------
 # Page 2 : recherche par images / Simple, clair : on upload, on interroge Google Vision + Google Search,
