@@ -337,6 +337,25 @@
     }
 
     //---------------------------------------------------------//
+    // Pré-remplissage depuis l'extension de navigateur, via ?url=... dans l'adresse
+    (function prefillFromQueryParam() {
+        try {
+          const parametres = new URLSearchParams(window.location.search);
+          const urlDepuisExtension = parametres.get('url');
+          if (!urlDepuisExtension) return;
+
+          ensureAtLeast(2);
+          const champs = [...inputsDiv.querySelectorAll('input')];
+          if (champs[0]) champs[0].value = urlDepuisExtension;
+
+          // nettoie l'adresse (évite de garder ?url=... si on partage le lien)
+          window.history.replaceState({}, '', window.location.pathname);
+        } catch (e) {
+          // rien
+        }
+    })();
+
+    //---------------------------------------------------------//
     // Pré-remplissage depuis la page "images" via sessionStorage
     (function prefillFromSession() {
         try {

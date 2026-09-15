@@ -968,6 +968,59 @@ def api_analyze():
     return jsonify({"results": classement, "errors": erreurs})
 
 
+@app.route("/api/analyze-one", methods=["POST", "OPTIONS"])
+def api_analyze_one():
+    """
+    Analyse une seule URL — pensé pour l'extension de navigateur : quand tu es
+    sur une page produit, l'extension appelle cette route pour obtenir tout
+    de suite un score écologique, sans avoir besoin d'un deuxième article à comparer.
+
+    Contrairement à /api/analyze, cette route accepte les requêtes venant de
+    n'importe quel site (CORS ouvert) puisqu'elle est appelée directement
+    depuis la page du détaillant que tu visites (ex: amazon.ca), pas depuis
+    notre propre site.
+    """
+    if request.method == "OPTIONS":
+        # Réponse "vide" au preflight CORS que le navigateur envoie avant le vrai POST.
+        return ("", 204)
+
+    donnees_requete = request.get_json(force=True)
+    url = (donnees_requete.get("url") or "").strip()
+    if not url:
+        return jsonify({"error": "URL manquante."}), 400
+
+    try:
+        contenu_page = smart_fetch(url)
+        analyse_ia = call_llm(contenu_page)
+        sous_scores = analyse_ia.get("subscores", {}) or {}
+        score_ecologique = compute_eco_score(sous_scores)
+        categorie = analyse_ia.get("category") or "autre"
+        enregistrer_soumission(contenu_page["url"], categorie)
+        return jsonify({
+            "url": contenu_page["url"],
+            "title": analyse_ia.get("title") or contenu_page["title"],
+            "category": categorie,
+            "features": analyse_ia.get("features", {}),
+            "eco_score": score_ecologique,
+        })
+    except Exception as erreur:
+        return jsonify({"error": str(erreur)}), 500
+
+
+@app.after_request
+def autoriser_cors_pour_extension(reponse):
+    """
+    Ajoute les en-têtes CORS uniquement sur la route utilisée par l'extension
+    de navigateur — le reste du site n'a pas besoin d'être appelable depuis
+    un autre domaine, donc on ne l'ouvre pas partout.
+    """
+    if request.path == "/api/analyze-one":
+        reponse.headers["Access-Control-Allow-Origin"] = "*"
+        reponse.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        reponse.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return reponse
+
+
 @app.post("/api/share")
 def api_share():
     """

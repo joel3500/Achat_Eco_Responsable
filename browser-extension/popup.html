@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Achat Éco-Responsable</title>
+  <style>
+    :root { --bg:#0f172a; --fg:#e2e8f0; --muted:#94a3b8; --card:#111827; --brand:#22c55e; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; width: 320px; background: var(--bg); color: var(--fg);
+      font: 14px/1.5 system-ui, Segoe UI, Roboto;
+    }
+    header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 14px; border-bottom: 1px solid #1f2937; background: #0b1220;
+    }
+    header img { height: 28px; width: auto; }
+    header h1 { font-size: 15px; margin: 0; }
+    main { padding: 14px; }
+    .current-url {
+      font-size: 11px; color: var(--muted); word-break: break-all;
+      background: #0a0f1a; border: 1px solid #1f2937; border-radius: 8px; padding: 8px;
+      margin-bottom: 10px;
+    }
+    button.primary {
+      width: 100%; background: var(--brand); color: #052e12; font-weight: 700;
+      border: none; border-radius: 10px; padding: 10px; cursor: pointer; font-size: 14px;
+    }
+    button.primary:disabled { opacity: .6; cursor: not-allowed; }
+    #status { margin-top: 10px; font-size: 12px; color: var(--muted); text-align: center; }
+    #result { margin-top: 12px; display: none; }
+    .score-badge {
+      text-align: center; padding: 12px; border-radius: 12px; margin-bottom: 10px;
+      background: var(--card); border: 1px solid #1f2937;
+    }
+    .score-badge .num { font-size: 32px; font-weight: 800; }
+    .score-badge.high .num { color: var(--brand); }
+    .score-badge.mid .num { color: #facc15; }
+    .score-badge.low .num { color: #f87171; }
+    .score-badge .title { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .feature-line { font-size: 12px; margin: 4px 0; }
+    .feature-line b { color: var(--fg); }
+    a.compare-link {
+      display: block; text-align: center; margin-top: 10px; color: #60a5fa;
+      font-size: 12px; text-decoration: none;
+    }
+    footer { padding: 8px 14px 12px; text-align: center; }
+    footer a { color: var(--muted); font-size: 11px; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="icons/icon48.png" alt="Logo">
+    <h1>Achat Éco-Responsable</h1>
+  </header>
+  <main>
+    <div class="current-url" id="currentUrl">…</div>
+    <button class="primary" id="analyzeBtn">🌱 Analyser cette page</button>
+    <div id="status"></div>
+    <div id="result">
+      <div class="score-badge" id="scoreBadge">
+        <div class="num" id="scoreNum">--</div>
+        <div class="title" id="scoreTitle"></div>
+      </div>
+      <div class="feature-line"><b>Matériaux :</b> <span id="fMaterials">—</span></div>
+      <div class="feature-line"><b>CO₂e :</b> <span id="fCo2e">—</span></div>
+      <div class="feature-line"><b>Recyclabilité :</b> <span id="fRecyc">—</span></div>
+      <a href="#" class="compare-link" id="compareLink" target="_blank">Comparer avec un autre article sur le site →</a>
+    </div>
+  </main>
+  <footer>
+    <a href="https://web-production-671e46.up.railway.app/" target="_blank">Voir le site complet</a>
+  </footer>
+  <script src="popup.js"></script>
+</body>
+</html>
